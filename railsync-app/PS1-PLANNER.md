@@ -1,8 +1,10 @@
-# RailSync PS1 planner
+# Trackwork track planner
 
-Open http://127.0.0.1:3001 and sign in with your existing scheduler account. Choose **PS1 planner → Load challenge dataset → Generate all three scenarios**. You can instead select all eight original instance CSVs with **Upload 8 CSV files**. A successful new import replaces only the PS1 dataset/results; the daily coordination workspace and its accounts remain separate.
+Open http://127.0.0.1:3001 and sign in with your existing scheduler account. Choose **Track planner → Try the example programme → Build plans**. You can instead select all eight original instance CSVs with **Import work files**. Once a programme is loaded, use **Change programme** to import another. A successful new import replaces only the weekly dataset/results; planner accounts remain unchanged.
 
-The planner saves inputs and generated plans in SQLite. All scheduling runs locally in a worker thread without a paid AI API. Optional chat receives PS1 summary/diagnostics only for scheduler accounts. Requester and engineer accounts cannot retrieve PS1 inputs/results or exports.
+The three approaches are **Use available access** (A), **Meet target dates** (B), and **Balance access and delays** (C). Use the comparison table to choose an approach, search/filter the work list, open a job for its bookings, switch to the paged weekly timeline, or inspect **Track capacity**. **Export plan** provides the unchanged submission filenames and columns. Automatic checks remain explicitly separate from official validator approval.
+
+The planner saves inputs and generated plans in SQLite. All scheduling runs locally in a worker thread without a paid AI API. Optional chat receives the imported programme and selected scenario only for planner accounts. Legacy non-planner accounts cannot retrieve planner inputs, results or exports.
 
 ## Implemented
 
@@ -13,7 +15,7 @@ The planner saves inputs and generated plans in SQLite. All scheduling runs loca
 - Three deterministic priority/slack planning passes. C also compares a strict-supply baseline. This is a greedy heuristic, not a global optimum certificate.
 - Separate independent candidate validation, full-workload counts, penalty metrics, expandable activity explanations, contract/week filters, capacity hotspots and completion dates.
 - Exact submission CSV filenames/columns, separately for A/B/C. Infeasible candidates remain visible and downloadable as diagnostic JSON; submission CSV exports are blocked.
-- Responsive dark planner UI; all existing request/engineer/team/account workflows retained.
+- A focused light interface for track planning, imported contracts, plan history, questions and settings. Crew rostering and daily shifts have been retired.
 
 ## Public results and repeatability
 
@@ -31,9 +33,9 @@ C chooses the strict-supply candidate because its internal combined penalty is l
 
 ## Interpretation and limits
 
-The repository publishes a brief and sample CSVs, **not runnable validator code**. RailSync has not passed the judges' validator and does not claim to. The UI and reports state this limitation.
+The repository publishes a brief and sample CSVs, **not runnable validator code**. Trackwork has not passed the judges' validator and does not claim to. The UI and reports state this limitation.
 
-1. RailSync assigns a synchronized abstract possession label along an activity's entire span. The published sample permits different labels at different locations. Synchronization is a restrictive planning choice and may limit solution quality; equivalence with the hidden validator is unverified.
+1. Trackwork assigns a synchronized abstract possession label along an activity's entire span. The published sample permits different labels at different locations. Synchronization is a restrictive planning choice and may limit solution quality; equivalence with the hidden validator is unverified.
 2. Different labels represent separate abstract nights. Collision checks apply to overlapping exclusion envelopes in the same synchronized slot. Compatible non-Live PC/C and C/C activities are buffer-exempt within that slot, following the brief's co-sharing description. Confirm this interpretation against the actual validator before submission.
 3. CSV occupancy lists only actual work locations, matching the public sample. Live mirrored/crossover closures and buffers are checked internally for clashes; they are not extra CSV work rows or capacity charges. A Live exclusion envelope reaching H01/H02 conservatively also closes the other line's interchange.
 4. A successor begins no earlier than the week after its predecessor's full completion. Activities receive at most one access per week. Completion is the Sunday ending the final access week.
@@ -43,13 +45,13 @@ The repository publishes a brief and sample CSVs, **not runnable validator code*
 
 ## Tests
 
-`npm test` runs the existing workflows plus PS1 public-workload and mutated-plan tests. Checks include deleted workload, missing occupancy, capacity, illegal sharing, planned deadlines, predecessor regression, forbidden ECLO, geometry, malformed inputs, authenticated import/solve/export, CSRF, role restrictions and SQLite persistence. Provider transport tests are stubs; they are not a paid live API test.
+`npm test` runs public-workload and mutated-plan tests plus planner account, retired-route, legacy-data preservation and scenario-scoped chat checks. Checks include deleted workload, missing occupancy, capacity, illegal sharing, planned deadlines, predecessor regression, forbidden ECLO, geometry, malformed inputs, authenticated import/solve/export, CSRF, role restrictions and SQLite persistence. Provider transport tests are stubs; they are not a paid live API test.
 
 ## Data provenance
 
 Reference: https://github.com/aochinwen/NebulaX-Hackathon-ProblemStatement
 
-Pinned public repository commit: `16526c02579c7f37e54eaaa42a4cc6d4ceb19994`. Original files and provenance are in `ps1-reference/`. The supplied sample is preserved separately and is never presented as RailSync output.
+Pinned public repository commit: `16526c02579c7f37e54eaaa42a4cc6d4ceb19994`. Original files and provenance are in `ps1-reference/`. The supplied sample is preserved separately and is never presented as Trackwork output.
 
 ## Deployment status
 

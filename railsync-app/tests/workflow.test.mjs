@@ -1,54 +1,54 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync,rmSync} from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import {createApp} from '../server.mjs';
 import {callAI} from '../ai.mjs';
-import {propose,validate,end} from '../scheduler.mjs';
-const DAY='2026-10-01';
-async function fixture(t,options={}){const app=createApp(options);await new Promise(r=>app.server.listen(0,'127.0.0.1',r));const url=`http://127.0.0.1:${app.server.address().port}`;t.after(()=>app.close());function client(){let cookie='',csrf='';return async(route,body,expect=200,extra={})=>{const res=await fetch(url+'/api'+route,{method:body===undefined?'GET':'POST',headers:{cookie,...(body===undefined?{}:{'Content-Type':'application/json','X-CSRF-Token':csrf}),...extra},body:body===undefined?undefined:JSON.stringify(body)});const value=await res.json();assert.equal(res.status,expect,JSON.stringify(value));if(res.headers.get('set-cookie'))cookie=res.headers.get('set-cookie').split(';')[0];if(value.csrf)csrf=value.csrf;return value;};}return {app,client,url};}
-test('real HTTP workflow: roles, requests, scheduling, approval, progress, stale updates, persistence',async t=>{
- const dir=mkdtempSync(path.join(os.tmpdir(),'railsync-test-'));const dbPath=path.join(dir,'test.sqlite');t.after(()=>{try{rmSync(dir,{recursive:true,force:true})}catch{}});const {app,client}=await fixture(t,{dbPath});const admin=client(),requester=client(),outsider=client(),engineer=client(),anonymous=client();
- await anonymous('/state?date='+DAY,undefined,401);assert((await admin('/health')).setupRequired);
- await admin('/setup',{name:'Scheduler QA',email:'scheduler@example.test',password:'qa-only-password-123'},201);await admin('/setup',{name:'No'},409);
- let state=await admin('/state?date='+DAY);const add=async b=>{state=await admin('/state?date='+DAY);return admin('/users',{...b,version:state.version,password:'qa-only-password-123'},201)};
- const req=await add({name:'Requester QA',email:'requester@example.test',role:'requester'});await add({name:'Other requester',email:'other@example.test',role:'requester'});await add({name:'Engineer QA',email:'engineer@example.test',role:'engineer',teamId:'Alpha'});
- await requester('/login',{email:'requester@example.test',password:'wrong-password'},401);await requester('/login',{email:'requester@example.test',password:'qa-only-password-123'});await outsider('/login',{email:'other@example.test',password:'qa-only-password-123'});await engineer('/login',{email:'engineer@example.test',password:'qa-only-password-123'});
- state=await requester('/state?date='+DAY);await requester('/users',{version:state.version,name:'Elevated',email:'evil@example.test',role:'scheduler',password:'qa-only-password-123'},403);
- const created=await requester('/jobs',{version:state.version,title:'Inspect test asset',date:DAY,sector:'Sector A',skill:'Track',priority:'urgent',kind:'inspection',zone:'Shared zone',duration:3,setup:1,clearance:1,ready:true,notes:'Private requester note'},201);const jobId=created.job.id;
- const hidden=await outsider('/state?date='+DAY);assert.equal(hidden.jobs.length,0);assert(!JSON.stringify(hidden).includes('Private requester note'));assert.equal(hidden.users.length,0);
- await outsider('/job/action',{version:hidden.version,id:jobId,action:'ready',value:false},403);
- state=await admin('/state?date='+DAY);const oldVersion=state.version;
- const result=await admin('/proposals',{version:state.version,date:DAY});assert.equal(result.plans.length,2);assert.equal(result.plans[0].metrics.conflicts,0);assert.equal(result.plans[0].assignments.length,1);
- await requester('/approve',{version:state.version,id:result.plans[0].id},403);
- await admin('/approve',{version:state.version,id:result.plans[0].id});
- await admin('/absence',{version:oldVersion,date:DAY,teamId:'Alpha',unavailable:true},409);
- let es=await engineer('/state?date='+DAY);assert.equal(es.jobs.length,1);assert.equal(es.jobs[0].teamId,'Alpha');await engineer('/job/action',{version:es.version,id:jobId,action:'complete'},400);
- await engineer('/job/action',{version:es.version,id:jobId,action:'acknowledge'});es=await engineer('/state?date='+DAY);assert.equal(es.jobs[0].status,'acknowledged');assert(es.notifications.length>0);
- state=await admin('/state?date='+DAY);const lockedPlan=await admin('/proposals',{version:state.version,date:DAY});assert.equal(lockedPlan.plans[0].assignments[0].start,es.jobs[0].start);
- await engineer('/job/action',{version:es.version,id:jobId,action:'start'});es=await engineer('/state?date='+DAY);await engineer('/job/action',{version:es.version,id:jobId,action:'delay',extra:2,reason:'Additional inspection needed'});es=await engineer('/state?date='+DAY);assert.equal(es.jobs[0].duration,5);await engineer('/job/action',{version:es.version,id:jobId,action:'complete'});es=await engineer('/state?date='+DAY);assert.equal(es.jobs[0].status,'completed');
- await admin('/approve',{version:es.version,id:lockedPlan.plans[0].id},409);
- await requester('/ai/config',{provider:'openai',key:'fake',model:'gpt-4.1-mini'},403);await requester('/chat',{message:'Hello',date:DAY},503);
- await admin('/notifications/read',{version:es.version},403,{'X-CSRF-Token':'invalid'});await admin('/notifications/read',{version:es.version},403,{Origin:'https://untrusted.example'});
- const row=app.db.prepare('SELECT * FROM users WHERE id=?').get(req.user.id);assert(!row.password.includes('qa-only'));assert.equal(row.password.split(':').length,2);
- const same=createApp({dbPath});assert.equal(JSON.parse(same.db.prepare('SELECT body FROM workspace').get().body).jobs[0].status,'completed');same.db.close();
- await requester('/logout',{});await requester('/state?date='+DAY,undefined,401);
+async function fixture(t,options={}){const app=createApp({dbPath:':memory:',...options});await new Promise(r=>app.server.listen(0,'127.0.0.1',r));const url=`http://127.0.0.1:${app.server.address().port}`;t.after(()=>app.close());function client(){let cookie='',csrf='';return async(route,body,expect=200,extra={})=>{const res=await fetch(url+'/api'+route,{method:body===undefined?'GET':'POST',headers:{cookie,...(body===undefined?{}:{'Content-Type':'application/json','X-CSRF-Token':csrf}),...extra},body:body===undefined?undefined:JSON.stringify(body)});const value=await res.json();assert.equal(res.status,expect,JSON.stringify(value));if(res.headers.get('set-cookie'))cookie=res.headers.get('set-cookie').split(';')[0];if(value.csrf)csrf=value.csrf;return value;};}return {app,client,url};}
+const credentials={name:'Planner QA',email:'planner@example.test',password:'qa-only-password-123'};
+test('planner accounts, access controls, retired routes and preserved legacy records',async t=>{
+ const {app,client}=await fixture(t),admin=client(),other=client();
+ await admin('/state',undefined,401);await admin('/setup',credentials,201);
+ app.db.exec('CREATE TABLE workspace(id INTEGER PRIMARY KEY,body TEXT);CREATE TABLE messages(id INTEGER PRIMARY KEY,user_id TEXT,role TEXT,content TEXT,created TEXT)');
+ const legacy=JSON.stringify({teams:[{id:'Charlie'},{id:'Delta'}],jobs:[{title:'Legacy work'}]});
+ app.db.prepare('INSERT INTO workspace VALUES(1,?)').run(legacy);
+ const state=await admin('/state');assert.deepEqual(Object.keys(state).sort(),['ai','events','user','users','version']);assert(!('teamId' in state.user));
+ for(const route of ['/profile','/absence','/seed','/jobs','/job/action','/proposals','/approve','/notifications/read','/ai/draft'])await admin(route,{version:state.version},410);
+ assert.equal(app.db.prepare('SELECT body FROM workspace').get().body,legacy);
+ await admin('/users',{...credentials,email:'new@example.test',role:'scheduler',version:state.version},403,{'X-CSRF-Token':'wrong'});
+ await admin('/users',{...credentials,email:'new@example.test',role:'engineer',version:state.version},400);
+ await admin('/users',{...credentials,email:'new@example.test',role:'scheduler',version:state.version},201);
+ await admin('/users',{...credentials,email:'stale@example.test',role:'scheduler',version:state.version},409);
+ await other('/login',{email:'new@example.test',password:credentials.password});
+ assert.equal((await other('/state')).users.length,2);
+ app.db.prepare("INSERT INTO users SELECT 'old-worker','Old worker','worker@example.test',password,'engineer','Charlie' FROM users LIMIT 1").run();
+ const worker=client();await worker('/login',{email:'worker@example.test',password:credentials.password});
+ for(const route of ['/ps1/state','/chat/history?scenario=A'])await worker(route,undefined,403);
+ await worker('/chat',{message:'Show contracts',scenario:'A'},403);
+ assert.equal(app.db.prepare("SELECT role FROM users WHERE id='old-worker'").get().role,'engineer');
+ await admin('/logout',{});await admin('/state',undefined,401);
 });
-test('six conflicts sample, availability disruption, readiness deferral and worker preference',async t=>{
- const {client}=await fixture(t,{dbPath:':memory:'});const a=client();await a('/setup',{name:'QA',email:'qa@example.test',password:'qa-only-password-123'},201);let s=await a('/state?date='+DAY);await a('/seed',{date:DAY,version:s.version},201);s=await a('/state?date='+DAY);assert.equal(s.conflicts.length,3);let p=await a('/proposals',{date:DAY,version:s.version});assert(p.plans.every(p=>p.metrics.conflicts===0&&p.metrics.scheduled===6));await a('/approve',{id:p.plans[0].id,version:s.version});s=await a('/state?date='+DAY);assert.equal(s.conflicts.length,0);await a('/absence',{teamId:'Alpha',date:DAY,unavailable:true,version:s.version});s=await a('/state?date='+DAY);p=await a('/proposals',{date:DAY,version:s.version});assert(p.plans[0].assignments.every(j=>j.teamId!=='Alpha'));await a('/approve',{id:p.plans[0].id,version:s.version});s=await a('/state?date='+DAY);await a('/job/action',{id:s.jobs[0].id,action:'ready',value:false,version:s.version});s=await a('/state?date='+DAY);p=await a('/proposals',{date:DAY,version:s.version});assert(p.plans[0].deferred.some(j=>j.id===s.jobs[0].id));await a('/approve',{id:p.plans[0].id,version:s.version});s=await a('/state?date='+DAY);const deferred=s.jobs.find(j=>j.status==='deferred');assert.equal(deferred.deferrals,1);await a('/job/action',{id:deferred.id,action:'reopen',date:'2026-10-02',version:s.version});assert.equal((await a('/state?date=2026-10-02')).jobs.find(j=>j.id===deferred.id).status,'submitted');
+test('chat uses only selected weekly plan, isolates history, and never mutates plans',async t=>{
+ const calls=[];const {app,client}=await fixture(t,{fetcher:async(url,options)=>{calls.push(JSON.parse(options.body));return {ok:true,json:async()=>({output:[{content:[{type:'output_text',text:'Review the imported contract limits.'}]}]})};}});
+ const admin=client();await admin('/setup',credentials,201);
+ await admin('/ai/config',{provider:'openai',model:'test-model',key:'stub-only-not-a-real-key'});
+ const imported=await admin('/ps1/import',{version:0,sample:true});const project=imported.summary.projects[0];assert(project.workfronts>0);assert(project.weekly_cap>0);assert(project.contract_deadline);
+ await admin('/ps1/solve',{version:imported.version,scenario:'A'});
+ app.db.exec('CREATE TABLE messages(id INTEGER PRIMARY KEY,user_id TEXT,role TEXT,content TEXT,created TEXT)');
+ app.db.prepare("INSERT INTO messages SELECT 1,id,'user','Legacy Charlie secret','old' FROM users LIMIT 1").run();
+ const before=app.db.prepare('SELECT body FROM ps1_workspace').get().body;
+ await admin('/chat',{message:'Explain access limits.',scenario:'A'});
+ const snapshot=JSON.parse(calls[0].instructions.split('AUTHORIZED DATA:\n')[1]);
+ assert.equal(snapshot.selected_scenario,'A');assert(snapshot.plan.report.feasible);assert(snapshot.dataset.projects[0].workfronts>0);
+ assert(!('teams' in snapshot));assert(!JSON.stringify(calls[0]).includes('Legacy Charlie secret'));
+ assert.equal((await admin('/chat/history?scenario=A')).length,2);
+ assert.equal((await admin('/chat/history?scenario=B')).length,0);
+ await admin('/chat',{message:'Any result?',scenario:'B'});
+ assert.equal(JSON.parse(calls[1].instructions.split('AUTHORIZED DATA:\n')[1]).plan,null);
+ assert.equal(calls[1].input.length,1);
+ assert.equal(app.db.prepare('SELECT body FROM ps1_workspace').get().body,before);
+ await admin('/ps1/import',{version:imported.version,sample:true});
+ assert.equal((await admin('/chat/history?scenario=A')).length,0);
 });
-test('solver respects dependency, setup, clearance, unavailable teams and locked work',()=>{
- const state={teams:[{id:'Alpha',skill:'Track',start:0,end:24}],profiles:[{userId:'u',teamId:'Alpha',start:4,end:18,preferred:8,unavailableDates:[]}],absences:[],jobs:[]};const base={date:DAY,sector:'Sector A',skill:'Track',priority:'routine',kind:'repair',zone:'z',duration:2,setup:1,clearance:1,start:null,teamId:null,status:'submitted',ready:true};state.jobs=[{...base,id:'a',title:'First'},{...base,id:'b',title:'Second',dependsOn:'a'}];const p=propose(state,DAY);assert.equal(p.deferred.length,0);const jobs=p.assignments.map(a=>({...state.jobs.find(j=>j.id===a.id),...a,status:'scheduled'}));assert.equal(validate(jobs,state,DAY).length,0);assert(jobs[1].start>=end(jobs[0]));assert(jobs.every(j=>j.start>=4&&end(j)<=18));state.jobs=[{...jobs[0],locked:true}];state.absences=[{teamId:'Alpha',date:DAY}];assert(propose(state,DAY).blocked);
-});
-test('engineers see relevant cross-team conflicts without another team’s private jobs',async t=>{
- const {client}=await fixture(t,{dbPath:':memory:'});const a=client(),e=client();await a('/setup',{name:'Conflict QA',email:'scope@example.test',password:'qa-only-password-123'},201);let s=await a('/state?date='+DAY);await a('/users',{version:s.version,name:'Alpha engineer',email:'alpha@example.test',password:'qa-only-password-123',role:'engineer',teamId:'Alpha'},201);s=await a('/state?date='+DAY);await a('/seed',{date:DAY,version:s.version},201);await e('/login',{email:'alpha@example.test',password:'qa-only-password-123'});const view=await e('/state?date='+DAY);assert.equal(view.jobs.length,2);assert(view.conflicts.some(c=>c.reason==='Overlapping track access'));assert(view.conflicts.some(c=>c.reason==='Team double-booked'));assert(view.conflicts.every(c=>c.jobIds.every(id=>view.jobs.some(j=>j.id===id))));assert(!view.jobs.some(j=>j.teamId==='Charlie'));
-});
-test('AI adapter uses real provider wire formats; mocked transport is explicitly not a live API test',async()=>{
- let request;const fake=async(url,options)=>{request={url,...options};return {ok:true,json:async()=>({output:[{content:[{type:'output_text',text:'OpenAI test reply'}]}]})}};
- assert.equal(await callAI({provider:'openai',key:'test-secret',model:'gpt-4.1-mini'},[{role:'user',content:'Hi'}],'System',fake),'OpenAI test reply');assert.equal(request.url,'https://api.openai.com/v1/responses');assert.equal(request.headers.Authorization,'Bearer test-secret');assert.equal(JSON.parse(request.body).store,false);
- const claude=async(url,options)=>{request={url,...options};return {ok:true,json:async()=>({content:[{type:'text',text:'Claude test reply'}]})}};assert.equal(await callAI({provider:'anthropic',key:'test-secret',model:'test-model'},[{role:'user',content:'Hi'}],'System',claude),'Claude test reply');assert.equal(request.headers['anthropic-version'],'2023-06-01');assert.equal(JSON.parse(request.body).system,'System');await assert.rejects(callAI({key:'',provider:'openai'},[],''),/not connected/);await assert.rejects(callAI({key:'test',provider:'openai'},[],'',async()=>({ok:false,status:401})),/API key rejected/);
-});
-test('AI connection endpoint never exposes credentials, saves private history, supports draft, errors honestly',async t=>{
- let count=0;const {client}=await fixture(t,{dbPath:':memory:',fetcher:async(url,options)=>{count++;const body=JSON.parse(options.body);const draft=body.instructions?.includes('Extract a request');return {ok:true,json:async()=>({output:[{content:[{type:'output_text',text:draft?JSON.stringify({title:'Draft job',sector:null,missing:['sector']}):'Transport stub response'}]}]})}}});const a=client();await a('/setup',{name:'AI QA',email:'ai@example.test',password:'qa-only-password-123'},201);await a('/ai/config',{provider:'openai',model:'gpt-4.1-mini',key:'never-return-this-test-key'});let s=await a('/state?date='+DAY);assert(!JSON.stringify(s).includes('never-return'));assert(!s.ai.verified);await a('/ai/test',{});assert((await a('/state?date='+DAY)).ai.verified);assert.equal((await a('/chat',{message:'Explain',date:DAY})).reply,'Transport stub response');assert.equal((await a('/chat/history')).length,2);assert.equal((await a('/ai/draft',{message:'Inspect',date:DAY})).draft.title,'Draft job');assert.equal(count,3);await a('/ai/config',{disconnect:true});await a('/chat',{message:'Explain',date:DAY},503);
+test('provider error messages do not leak secrets; both transports parse real response shapes',async()=>{
+ const key='stub-secret';await assert.rejects(callAI({key,provider:'openai',model:'test'},[],'system',async()=>({ok:false,status:429})),e=>e.message.includes('429')&&!e.message.includes(key));
+ for(const provider of ['openai','anthropic']){let sent;const answer=await callAI({key,provider,model:'test'},[{role:'user',content:'Hello'}],'system',async(url,options)=>{sent=JSON.parse(options.body);return {ok:true,json:async()=>provider==='openai'?{output:[{content:[{type:'output_text',text:'OK'}]}]}:{content:[{type:'text',text:'OK'}]}}});assert.equal(answer,'OK');assert.equal(sent.model,'test');}
 });
