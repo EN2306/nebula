@@ -1,7 +1,15 @@
 import http from 'node:http';
 import { runSolver } from './worker-runner.mjs';
 import { changeSupply, comparePlans, checkBaseline } from './what-if.mjs';
-import { FILES, loadDataset, describe, exportsFor, validatePlan } from './ps1.mjs';
+import { buildInsights } from './insights.mjs';
+import {
+  FILES,
+  inspectInputFiles,
+  loadDataset,
+  describe,
+  exportsFor,
+  validatePlan,
+} from './ps1.mjs';
 import { DatabaseSync } from 'node:sqlite';
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual, createHash } from 'node:crypto';
 import { readFileSync, mkdirSync } from 'node:fs';
@@ -337,6 +345,15 @@ export function createApp({
           }
           return;
         }
+        if (route === '/api/ps1/insights' && req.method === 'GET') {
+          const scenario = choice(url.searchParams.get('scenario'), ['A', 'B', 'C'], 'scenario');
+          const snapshot = psGet();
+          const result = snapshot.results[scenario];
+          if (!snapshot.files || !result)
+            fail(404, 'Build this scenario before opening risk insights.');
+          send(200, buildInsights(loadDataset(snapshot.files), result));
+          return;
+        }
         if (route === '/api/ps1/import' && req.method === 'POST') {
           const previous = psGet();
           if (b.version !== previous.version)
@@ -353,19 +370,24 @@ export function createApp({
               ]),
             );
           else {
-            if (
-              !b.files ||
-              typeof b.files !== 'object' ||
-              Array.isArray(b.files) ||
-              Object.keys(b.files).length !== 8
-            )
-              fail(400, 'Upload exactly the eight named instance CSV files.');
+            const uploadIssues = inspectInputFiles(b.files);
+            if (uploadIssues.length) {
+              const error = Object.assign(new Error('Upload format needs attention.'), {
+                status: 400,
+                uploadIssues,
+              });
+              throw error;
+            }
             files = Object.fromEntries(FILES.map((f) => [f, b.files[f]]));
           }
           try {
             loadDataset(files);
           } catch (e) {
-            fail(400, e.message);
+            const error = Object.assign(new Error(`Input data is invalid: ${e.message}`), {
+              status: 400,
+              uploadIssues: [e.message],
+            });
+            throw error;
           }
           const next = {
             version: previous.version + 1,
@@ -597,6 +619,7 @@ export function createApp({
     } catch (error) {
       send(error.status || 500, {
         error: error.status ? error.message : 'Unexpected server error. No action was confirmed.',
+        ...(error.uploadIssues ? { uploadIssues: error.uploadIssues } : {}),
       });
       if (!error.status) console.error('Server error:', error.code || error.name);
     }

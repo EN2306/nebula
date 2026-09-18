@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { benchmarkCases } from '../benchmark.mjs';
 import { loadDataset, solve, validatePlan } from '../ps1.mjs';
 import { changeSupply, comparePlans, checkBaseline } from '../what-if.mjs';
+import { buildInsights } from '../insights.mjs';
 
 test('search reaches public bounds with reproducible schedules regardless of input order', () => {
   const cases = benchmarkCases(),
@@ -63,4 +64,17 @@ test('250-activity instance completes without unnecessary flexible-supply spendi
     assert.equal(result.report.complete_activities, 250);
     assert.equal(result.report.soft_scores.objective_score, 0);
   }
+});
+
+test('risk insights produce actionable handover and negotiation evidence', () => {
+  const dataset = loadDataset(benchmarkCases()[0].files);
+  const result = solve(dataset, 'B');
+  const insight = buildInsights(dataset, result);
+  assert.equal(insight.scenario, 'B');
+  assert.equal(insight.overview.completed, '54/54');
+  assert(insight.handover.includes('Scenario B'));
+  assert(Array.isArray(insight.priority_risks));
+  assert(Array.isArray(insight.fragile_locations));
+  assert(Array.isArray(insight.negotiation));
+  assert(insight.note.includes('official validation'));
 });

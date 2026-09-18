@@ -65,6 +65,37 @@ function psWhatIf() {
     }
   };
 }
+async function psInsights() {
+  try {
+    const insight = await api(`/ps1/insights?scenario=${encodeURIComponent(psScenario)}`);
+    dialog(
+      `Risk & handover · Scenario ${psScenario}`,
+      `<p class="info">${esc(insight.handover)}</p><div class="detail-grid"><div><span>Completion</span><b>${esc(insight.overview.completed)}</b></div><div><span>Objective score</span><b>${insight.overview.objective_score ?? 'Infeasible'}</b></div><div><span>Delay days</span><b>${insight.overview.delay_days}</b></div><div><span>Extra slots / ECLO</span><b>${insight.overview.extra_slots} / ${insight.overview.eclo_nights}</b></div></div><h3 class="section-gap">Priority risks</h3>${
+        insight.priority_risks.length
+          ? `<div class="table-scroll"><table><thead><tr><th>Activity</th><th>Contract</th><th>Priority</th><th>Delay</th><th>Risk score</th></tr></thead><tbody>${insight.priority_risks
+              .slice(0, 10)
+              .map(
+                (risk) =>
+                  `<tr><td>${esc(risk.activity_id)}</td><td>${esc(risk.contract)}</td><td>P${risk.priority}</td><td>${risk.delay_days} days</td><td>${risk.score}</td></tr>`,
+              )
+              .join('')}</tbody></table></div>`
+          : '<p class="muted">No scored priority risks in this plan.</p>'
+      }<h3 class="section-gap">Fragile locations</h3>${
+        insight.fragile_locations.length
+          ? `<ul>${insight.fragile_locations
+              .slice(0, 8)
+              .map(
+                (location) =>
+                  `<li><strong>${esc(location.location)}</strong> · week ${location.week} · ${location.used}/${location.capacity} slots · ${location.affected_activities.join(', ')}</li>`,
+              )
+              .join('')}</ul>`
+          : '<p class="muted">No locations at or above nominal capacity.</p>'
+      }<h3 class="section-gap">Contractor negotiation prompts</h3>${insight.negotiation.length ? `<ul>${insight.negotiation.map((item) => `<li>${esc(item.request)} Affects ${item.affected_activities.join(', ')}.</li>`).join('')}</ul>` : '<p class="muted">No additional slot request is indicated for this plan.</p>'}<p class="hint">${esc(insight.note)}</p>`,
+    );
+  } catch (error) {
+    toast(error.message, true);
+  }
+}
 const psFiles = [
   '01_LINES.csv',
   '02_STATIONS.csv',
@@ -207,7 +238,7 @@ function paintPS1() {
        `<div class="compact-stat"><span>${label}</span><strong class="${cls}">${value}</strong><small>${note}</small></div>`,
    )
    .join('')}</section>
- <div class="planner-toolbar"><div><h2>Work programme</h2><p>${hasPlans ? 'Choose a plan, then review its schedule and access needs.' : 'Your jobs are ready. Build plans to find suitable track access.'}</p></div><div class="actions">${r ? `<button id="ps-what-if" ${busy}>What-if capacity</button><button id="ps-export" ${busy}>${uiIcon('download')}Export plan</button>` : ''}<button class="primary" id="ps-all" ${busy}>${psLoading ? 'Building plans…' : hasPlans ? 'Rebuild plans' : 'Build plans'}</button></div></div>
+ <div class="planner-toolbar"><div><h2>Work programme</h2><p>${hasPlans ? 'Choose a plan, then review its schedule and access needs.' : 'Your jobs are ready. Build plans to find suitable track access.'}</p></div><div class="actions">${r ? `<button id="ps-insights" ${busy}>Risk & handover</button><button id="ps-what-if" ${busy}>What-if capacity</button><button id="ps-export" ${busy}>${uiIcon('download')}Export plan</button>` : ''}<button class="primary" id="ps-all" ${busy}>${psLoading ? 'Building plans…' : hasPlans ? 'Rebuild plans' : 'Build plans'}</button></div></div>
  ${psLoading ? `<div class="build-progress" role="status">${esc(psProgress || 'Checking work and track availability…')}</div>` : ''}
  <section class="panel ${psLoading ? 'section-gap' : ''}"><div class="planner-tabs" role="tablist" aria-label="Programme views">${[
    ['work', 'Work schedule', d.activities],
@@ -238,6 +269,7 @@ function paintPS1() {
   $('ps-all').onclick = () => psGenerate(['A', 'B', 'C']);
   if ($('ps-export')) $('ps-export').onclick = psExportDialog;
   if ($('ps-what-if')) $('ps-what-if').onclick = psWhatIf;
+  if ($('ps-insights')) $('ps-insights').onclick = psInsights;
   $('ps-choice').onchange = (e) => {
     psScenario = e.target.value;
     psPage = 0;
@@ -285,7 +317,7 @@ async function psImportSample() {
 function psImportDialog() {
   dialog(
     'Import work programme',
-    `<p>Select all eight CSV files together. We’ll check the files before saving the programme.</p>${psData.summary ? '<div class="alert">A successful import replaces the current weekly programme and its saved plans. Export any plans you want to keep first.</div>' : ''}<ul class="import-list">${psFiles.map((f) => `<li>${f}</li>`).join('')}</ul><label for="ps-files">Programme files</label><input type="file" multiple accept=".csv,text/csv" id="ps-files"><p class="hint">Up to 1 MB per file. Maximum 250 jobs per programme.</p><p id="ps-import-status" class="import-error" role="alert"></p><div class="actions section-gap"><button class="primary" id="ps-confirm-import" disabled>Check and import</button><button id="ps-import-sample">Use example programme</button></div>`,
+    `<p>Select all eight CSV files together. We’ll check filenames, columns and data before saving the programme.</p>${psData.summary ? '<div class="alert">A successful import replaces the current weekly programme and its saved plans. Export any plans you want to keep first.</div>' : ''}<ul class="import-list">${psFiles.map((f) => `<li>${f}</li>`).join('')}</ul><label for="ps-files">Programme files</label><input type="file" multiple accept=".csv,text/csv" id="ps-files"><p class="hint">Up to 1 MB per file. Maximum 250 jobs per programme.</p><p id="ps-import-status" class="import-error" role="alert"></p><div class="actions section-gap"><button class="primary" id="ps-confirm-import" disabled>Check and import</button><button id="ps-import-sample">Use example programme</button></div>`,
   );
   let selected = [];
   const input = $('ps-files'),
@@ -298,7 +330,7 @@ function psImportDialog() {
       selected.length === 8 && !missing.length && selected.every((f) => f.size <= 1000000);
     submit.disabled = !valid;
     status.textContent = valid
-      ? '8 files selected. Ready to check.'
+      ? '8 correctly named files selected. Ready to check.'
       : missing.length
         ? 'Missing files:\n' + missing.join('\n')
         : 'Select exactly 8 files, each no larger than 1 MB.';
@@ -319,7 +351,9 @@ function psImportDialog() {
       toast('Programme imported. Build plans to schedule the work.');
     } catch (e) {
       status.className = 'import-error';
-      status.textContent = e.message;
+      status.innerHTML = e.uploadIssues?.length
+        ? `<strong>Fix these upload issues:</strong><ul>${e.uploadIssues.map((issue) => `<li>${esc(issue)}</li>`).join('')}</ul>`
+        : esc(e.message);
       submit.disabled = false;
       input.disabled = false;
     }

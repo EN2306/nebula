@@ -12,7 +12,7 @@ export const FILES = [
   '07_PROJECT_DETAILS.csv',
   '08_ACTIVITY_DETAILS.csv',
 ];
-const HEADERS = [
+export const INPUT_SCHEMA = Object.freeze([
   ['line_code', 'line_name'],
   ['station_id', 'line_code', 'seq', 'is_interchange'],
   ['sector_id', 'line_code', 'from_station_id', 'to_station_id', 'seq', 'is_shared'],
@@ -43,7 +43,8 @@ const HEADERS = [
     'predecessor_activity_id',
     'activity_priority',
   ],
-];
+]);
+const HEADERS = INPUT_SCHEMA;
 export function parseCSV(text) {
   if (typeof text !== 'string' || text.length > 1000000)
     throw Error('CSV must be text, up to 1 MB per file.');
@@ -83,6 +84,35 @@ export function parseCSV(text) {
       return Object.fromEntries(header.map((k, j) => [k, r[j].trim()]));
     }),
   };
+}
+
+export function inspectInputFiles(files) {
+  const issues = [];
+  if (!files || typeof files !== 'object' || Array.isArray(files))
+    return ['Upload the eight required CSV files.'];
+  const expected = new Set(FILES);
+  for (const name of FILES)
+    if (!Object.hasOwn(files, name)) issues.push(`${name}: file is missing.`);
+  for (const name of Object.keys(files).filter((name) => !expected.has(name)))
+    issues.push(`${name}: unexpected filename. Use the required names exactly.`);
+  for (const [index, name] of FILES.entries()) {
+    if (!Object.hasOwn(files, name)) continue;
+    if (typeof files[name] !== 'string') {
+      issues.push(`${name}: file content could not be read as text.`);
+      continue;
+    }
+    try {
+      const parsed = parseCSV(files[name]);
+      const required = INPUT_SCHEMA[index];
+      const missing = required.filter((column) => !parsed.header.includes(column));
+      const extra = parsed.header.filter((column) => !required.includes(column));
+      if (missing.length) issues.push(`${name}: missing column(s): ${missing.join(', ')}.`);
+      if (extra.length) issues.push(`${name}: unexpected column(s): ${extra.join(', ')}.`);
+    } catch (error) {
+      issues.push(`${name}: ${error.message}`);
+    }
+  }
+  return issues;
 }
 const day = (s) => {
   if (

@@ -1010,6 +1010,13 @@ summary {
   color: var(--red);
   font-size: 12px;
 }
+.import-error ul {
+  margin: 8px 0 0;
+  padding-left: 20px;
+}
+.import-error li + li {
+  margin-top: 4px;
+}
 .build-progress {
   padding: 12px 18px;
   background: #edf3f8;

@@ -3,7 +3,16 @@ import assert from 'node:assert/strict';
 import { readFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { FILES, parseCSV, loadDataset, solve, validatePlan, exportsFor } from '../ps1.mjs';
+import {
+  FILES,
+  INPUT_SCHEMA,
+  inspectInputFiles,
+  parseCSV,
+  loadDataset,
+  solve,
+  validatePlan,
+  exportsFor,
+} from '../ps1.mjs';
 import { createApp } from '../server.mjs';
 const files = Object.fromEntries(
   FILES.map((f) => [
@@ -99,6 +108,22 @@ test('scenario policy checks detect capacity strain, planned overrun, illegal sh
   assert(report.hard_violations.some((x) => x.rule === 'predecessor'));
 });
 test('bad datasets are rejected before they replace saved work', () => {
+  const missingIssues = inspectInputFiles({
+    ...files,
+    [FILES[6]]: files[FILES[6]].replace('contract_priority', ''),
+  });
+  assert(missingIssues.some((issue) => issue.includes(`${FILES[6]}: missing column(s)`)));
+  assert.equal(INPUT_SCHEMA.length, FILES.length);
+  assert(
+    inspectInputFiles({ ...files, 'wrong-name.csv': files[FILES[0]] }).some((issue) =>
+      issue.includes('unexpected filename'),
+    ),
+  );
+  assert(
+    inspectInputFiles({ ...files, [FILES[0]]: 'line_code,line_name\n"bad' }).some((issue) =>
+      issue.includes('Unclosed'),
+    ),
+  );
   const broken = { ...files };
   delete broken[FILES[0]];
   assert.throws(() => loadDataset(broken), /Missing/);
@@ -158,8 +183,19 @@ test('HTTP: authenticated import/solve/export, CSRF/role restrictions, stale imp
   assert.equal(state.summary.activities, dataset().activities.length);
   await req('/ps1/import', { version: 0, sample: true }, 409);
   await req('/ps1/import', { version: state.version, files: {} }, 400);
+  const malformed = { ...files };
+  delete malformed[FILES[0]];
+  const uploadError = await req('/ps1/import', { version: state.version, files: malformed }, 400);
+  assert(uploadError.uploadIssues.some((issue) => issue.includes(`${FILES[0]}: file is missing`)));
   const solved = await req('/ps1/solve', { version: state.version, scenario: 'B' });
   assert(solved.report.feasible);
+  const insights = await req('/ps1/insights?scenario=B');
+  assert.equal(insights.scenario, 'B');
+  assert.equal(
+    insights.overview.completed,
+    `${solved.report.complete_activities}/${solved.report.total_activities}`,
+  );
+  assert(insights.handover.includes('Scenario B'));
   const output = await req('/ps1/export?scenario=B&file=SCHEDULE_ACCESS.csv');
   assert.equal(parseCSV(output).rows.length, solved.access.length);
   const check = await req('/ps1/export?scenario=B&file=VALIDATION.json');

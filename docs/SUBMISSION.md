@@ -15,7 +15,7 @@ The [official brief, section 4](../problem-statement/PS1/PS1_README.md) requires
 - **0:20–0:45:** Import the eight CSV files and show counts, dates and workfront/access limits.
 - **0:45–1:20:** Build A/B/C and explain delays, additional access and ECLO using the comparison.
 - **1:20–2:00:** Inspect one late activity, its weekly timeline and a capacity bottleneck. Distinguish internal checks from official acceptance.
-- **2:00–2:35:** Show a capacity what-if preview and the count of changed activities. Explain that supply changes apply to every week and the saved plan is untouched. Show the model lower bound and distinguish it from official validation.
+- **2:00–2:35:** Show the Risk & handover view: priority risks, fragile locations, contractor negotiation prompts and a concise handover brief. Then show a capacity what-if preview and the count of changed activities. Explain that supply changes apply to every week and the saved plan is untouched. Show the model lower bound and distinguish it from official validation.
 - **2:35–3:00:** Export all three scenario packages and show the hosted import workflow and reproducible results.
 
 Before final packaging, run `npm test` and `npm run results`, confirm the pinned input checksums, and test the hosted workflow in a clean browser. Runtime databases, logs and `.local/` archives do not belong in the submitted source. Existing Git history still contains previously committed local data; assess the publication copy before making it public.
