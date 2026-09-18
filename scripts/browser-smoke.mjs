@@ -117,9 +117,108 @@ try {
   });
   screenshot = await send('Page.captureScreenshot', { format: 'png' });
   writeFileSync(path.join(root, 'planner-mobile.png'), Buffer.from(screenshot.data, 'base64'));
+  await send('Emulation.setDeviceMetricsOverride', {
+    width: 1440,
+    height: 1000,
+    deviceScaleFactor: 1,
+    mobile: false,
+  });
+  await evaluate("psTab='network';paintPS1()");
+  assert(await evaluate("document.querySelectorAll('[data-drag-activity]').length>0"));
+  assert(await evaluate("document.querySelectorAll('.buffer-chip').length>0"));
+  screenshot = await send('Page.captureScreenshot', { format: 'png' });
+  writeFileSync(path.join(root, 'schedule-map.png'), Buffer.from(screenshot.data, 'base64'));
+  await evaluate("document.querySelector('#manual-move').click()");
+  assert(await evaluate("!!document.querySelector('#move-form')"));
+  await evaluate(
+    "document.querySelector('#modal').close();const finalBooking=psData.results[psScenario].access.at(-1);moveForm(finalBooking.activity_id,finalBooking.week,finalBooking.week+1);document.querySelector('#move-form button').click()",
+  );
+  await until("!!document.querySelector('#apply-schedule-preview')");
+  await evaluate("document.querySelector('#apply-schedule-preview').click()");
+  await until(
+    "!document.querySelector('#modal').open && !!document.querySelector('#undo-schedule')",
+  );
+  await evaluate("document.querySelector('#undo-schedule').click()");
+  await until(
+    "document.querySelector('#toast')?.innerText.includes('Previous saved plan restored')",
+  );
+  await evaluate(
+    "document.querySelector('#modal').close();document.querySelector('#disruption-backup').click();document.querySelector('#disruption-scope').value='network';document.querySelector('#disruption-scope').dispatchEvent(new Event('change'));document.querySelector('#disruption-form button').click()",
+  );
+  await until("!!document.querySelector('#apply-schedule-preview')");
+  screenshot = await send('Page.captureScreenshot', { format: 'png' });
+  writeFileSync(path.join(root, 'backup-preview.png'), Buffer.from(screenshot.data, 'base64'));
+  await evaluate(
+    "document.querySelector('#modal').close();psImportDialog();document.querySelector('#csv-format-guide').click()",
+  );
+  await until("document.querySelectorAll('[data-download-template]').length===8");
+  await evaluate(
+    "document.querySelector('#modal').close();page='settings';render();document.querySelector('#add-account').click()",
+  );
+  assert.equal(await evaluate("document.querySelectorAll('#a-role option').length"), 4);
+  await evaluate("document.querySelector('#modal').close()");
+  for (const role of ['worker', 'manager', 'supervisor']) {
+    await evaluate(
+      `(async()=>{const s=await api('/state');await api('/users',{version:s.version,name:'${role} QA',email:'${role}@browser.test',password:'browser-test-password',role:'${role}'});})()`,
+    );
+  }
+  const signIn = async (role) => {
+    await evaluate(
+      `(async()=>{await api('/logout',{});auth(false);document.querySelector('#email').value='${role}@browser.test';document.querySelector('#password').value='browser-test-password';document.querySelector('#auth-form button[type=submit]').click();})()`,
+    );
+    await until(`user?.role==='${role}' && !!document.querySelector('#content .panel-body')`);
+  };
+  await signIn('worker');
+  await evaluate(
+    "document.querySelector('#report-issue').click();document.querySelector('#issue-description').value='Cannot attend today; please arrange cover.';document.querySelector('#issue-form button').click()",
+  );
+  await until("document.querySelector('#content')?.innerText.includes('Cannot attend today')");
+  await send('Emulation.setDeviceMetricsOverride', {
+    width: 390,
+    height: 844,
+    deviceScaleFactor: 1,
+    mobile: true,
+  });
+  screenshot = await send('Page.captureScreenshot', { format: 'png' });
+  writeFileSync(path.join(root, 'worker-mobile.png'), Buffer.from(screenshot.data, 'base64'));
+  assert(await evaluate('document.documentElement.scrollWidth<=window.innerWidth+1'));
+  await send('Emulation.setDeviceMetricsOverride', {
+    width: 1440,
+    height: 1000,
+    deviceScaleFactor: 1,
+    mobile: false,
+  });
+  await signIn('manager');
+  await until("!!document.querySelector('[data-review]')");
+  await evaluate(
+    "document.querySelector('[data-review]').click();document.querySelector('#review-points').value='1';document.querySelector('#review-reason').value='Reviewed by manager';document.querySelector('#review-form button').click()",
+  );
+  await until("document.querySelector('#content')?.innerText.includes('Reviewed by manager')");
+  screenshot = await send('Page.captureScreenshot', { format: 'png' });
+  writeFileSync(path.join(root, 'manager-desktop.png'), Buffer.from(screenshot.data, 'base64'));
+  await evaluate(
+    "(async()=>{await api('/logout',{});const m=await api('/login',{email:'browser@example.test',password:'browser-test-password'});user=m.user;csrf=m.csrf;page='decisions';await refresh();})()",
+  );
+  await until("!!document.querySelector('#emergency-new')");
+  await evaluate("document.querySelector('#emergency-new').click()");
+  await until("!!document.querySelector('#emergency-form')");
+  await evaluate(
+    "document.querySelector('#emergency-title').value='Power outage';document.querySelector('#emergency-question').value='Please decide whether to postpone this work.';document.querySelector('#emergency-form button').click()",
+  );
+  await until("document.querySelector('#content')?.innerText.includes('Power outage')");
+  await signIn('supervisor');
+  await until("!!document.querySelector('[data-decide]')");
+  screenshot = await send('Page.captureScreenshot', { format: 'png' });
+  writeFileSync(path.join(root, 'supervisor-desktop.png'), Buffer.from(screenshot.data, 'base64'));
+  await evaluate(
+    "document.querySelector('[data-decide]').click();document.querySelector('#decision-status').value='changes_requested';document.querySelector('#decision-reason').value='Rebuild with the power outage window.';document.querySelector('#decision-form button').click()",
+  );
+  await until(
+    "document.querySelector('#content')?.innerText.includes('Rebuild with the power outage window.')",
+  );
   assert.deepEqual(errors, []);
   console.log(
-    'Browser passed: setup, sample import, A/B/C solve, quality table, capacity preview and evidence dialog; desktop/mobile screenshots saved to .local/browser-check.',
+    'Browser passed: planner, buffer map, backup preview, CSV templates, four-role account form, worker report, manager review and supervisor emergency decision; desktop/mobile screenshots saved to .local/browser-check.',
   );
   await send('Browser.close');
 } finally {

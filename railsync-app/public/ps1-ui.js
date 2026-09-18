@@ -244,7 +244,7 @@ function paintPS1() {
    ['work', 'Work schedule', d.activities],
    ['compare', 'Compare plans', null],
    ['capacity', 'Track capacity', null],
-   ['network', 'Network', null],
+   ['network', 'Schedule map', null],
  ]
    .map(
      ([id, label, n]) =>
@@ -298,6 +298,7 @@ function paintPS1() {
     };
   });
   ({ work: psWork, compare: psCompare, capacity: psCapacity, network: psNetwork })[psTab]();
+  mountScheduleTools();
 }
 function resetPlannerFilters() {
   psWeek = 0;
@@ -320,6 +321,11 @@ function psImportDialog() {
     `<p>Select all eight CSV files together. We’ll check filenames, columns and data before saving the programme.</p>${psData.summary ? '<div class="alert">A successful import replaces the current weekly programme and its saved plans. Export any plans you want to keep first.</div>' : ''}<ul class="import-list">${psFiles.map((f) => `<li>${f}</li>`).join('')}</ul><label for="ps-files">Programme files</label><input type="file" multiple accept=".csv,text/csv" id="ps-files"><p class="hint">Up to 1 MB per file. Maximum 250 jobs per programme.</p><p id="ps-import-status" class="import-error" role="alert"></p><div class="actions section-gap"><button class="primary" id="ps-confirm-import" disabled>Check and import</button><button id="ps-import-sample">Use example programme</button></div>`,
   );
   let selected = [];
+  $('ps-files').insertAdjacentHTML(
+    'beforebegin',
+    '<button type="button" id="csv-format-guide" class="quiet">View required columns & download templates</button>',
+  );
+  $('csv-format-guide').onclick = csvFormatGuide;
   const input = $('ps-files'),
     submit = $('ps-confirm-import'),
     status = $('ps-import-status');
@@ -581,7 +587,7 @@ function psCapacityResults() {
     psCapacityResults();
   };
 }
-function psNetwork() {
+function psStaticNetwork() {
   const d = psData.summary;
   $('planner-body').innerHTML = `<div class="network-view">${d.lines
     .map(

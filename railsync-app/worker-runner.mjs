@@ -1,9 +1,9 @@
 import { Worker } from 'node:worker_threads';
 
-export function runSolver(files, scenario) {
+export function runSolver(files, scenario, constraints = {}) {
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL('./ps1-worker.mjs', import.meta.url), {
-      workerData: { files, scenario },
+      workerData: { files, scenario, constraints },
     });
     let settled = false;
     const finish = (error, result) => {

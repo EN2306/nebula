@@ -4,6 +4,7 @@ import { changeSupply, comparePlans, checkBaseline } from './what-if.mjs';
 import { buildInsights } from './insights.mjs';
 import {
   FILES,
+  INPUT_SCHEMA,
   inspectInputFiles,
   loadDataset,
   describe,
@@ -17,6 +18,9 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { callAI, chatSystem } from './ai.mjs';
 import { deploymentConfig, requestOrigin } from './deployment.mjs';
+import { operations, ROLES, planFingerprint } from './operations.mjs';
+import { planningModel } from './schedule-edit.mjs';
+import { scheduleRoutes } from './schedule-routes.mjs';
 const base = path.dirname(fileURLToPath(import.meta.url));
 const fail = (status, message) => {
   throw Object.assign(new Error(message), { status });
@@ -87,6 +91,9 @@ export function createApp({
     source: s.source,
     summary: s.files ? describe(loadDataset(s.files)) : null,
     results: s.results,
+    plan_tokens: Object.fromEntries(
+      Object.entries(s.results).map(([key, value]) => [key, planFingerprint(value)]),
+    ),
   });
   let psBusy = false;
   const get = () => {
@@ -111,14 +118,15 @@ export function createApp({
     });
   const view = (s, u) => ({
     version: s.version,
-    events: u.role === 'scheduler' ? s.events.slice(-100).reverse() : [],
-    users:
-      u.role === 'scheduler'
-        ? db
-            .prepare("SELECT id,name,email,role FROM users WHERE role='scheduler'")
-            .all()
-            .map(publicUser)
-        : [],
+    events: ['scheduler', 'supervisor'].includes(u.role) ? s.events.slice(-100).reverse() : [],
+    users: ['scheduler', 'supervisor', 'manager'].includes(u.role)
+      ? db
+          .prepare(
+            "SELECT id,name,email,role FROM users WHERE role IN ('scheduler','supervisor','manager','worker')",
+          )
+          .all()
+          .map(publicUser)
+      : [],
     ai: {
       configured: !!config.key,
       provider: config.provider,
@@ -137,6 +145,22 @@ export function createApp({
         : 'gpt-4.1-mini'),
     verified: false,
   };
+  const auditAction = (u, action, detail) => {
+    const s = get();
+    audit(s, u, action, null, detail);
+    save(s);
+  };
+  const team = operations(db, psGet, psView, auditAction);
+  const edits = scheduleRoutes({
+    psGet,
+    psSave,
+    psView,
+    auditAction,
+    isBusy: () => psBusy,
+    setBusy: (value) => {
+      psBusy = value;
+    },
+  });
   const attempts = new Map(),
     aiBusy = new Set();
   function limit(key, max, ms) {
@@ -155,7 +179,7 @@ export function createApp({
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fail(400, 'Enter a valid email address.');
     const password = text(b.password, 'Password', 200);
     if (password.length < 12) fail(400, 'Use a password with at least 12 characters.');
-    choice(b.role, ['scheduler'], 'planner account role');
+    choice(b.role, ROLES, 'account role');
     if (db.prepare('SELECT id FROM users WHERE email=?').get(email))
       fail(409, 'An account with this email already exists.');
     const u = {
@@ -218,6 +242,9 @@ export function createApp({
           '/style.css': 'style.css',
           '/workspace.css': 'workspace.css',
           '/ps1-ui.js': 'ps1-ui.js',
+          '/team-ui.js': 'team-ui.js',
+          '/schedule-ui.js': 'schedule-ui.js',
+          '/features.css': 'features.css',
         };
         if (!files[route]) fail(404, 'Not found');
         res.setHeader(
@@ -304,7 +331,17 @@ export function createApp({
         if (u.role !== 'scheduler') fail(403, 'This action requires a planner account.');
       };
       if (route.startsWith('/api/ps1/')) {
-        scheduler();
+        if (!(req.method === 'GET' && route === '/api/ps1/state' && u.role === 'supervisor'))
+          scheduler();
+        const edited = await edits(route, req.method, b, u);
+        if (edited) {
+          send(200, edited);
+          return;
+        }
+        if (route === '/api/ps1/schema' && req.method === 'GET') {
+          send(200, { files: FILES.map((name, i) => ({ name, columns: INPUT_SCHEMA[i] })) });
+          return;
+        }
         if (route === '/api/ps1/state' && req.method === 'GET') {
           send(200, psView(psGet()));
           return;
@@ -326,10 +363,17 @@ export function createApp({
           }
           psBusy = true;
           try {
-            const baselineReport = checkBaseline(changed.files, b.scenario, baseline);
+            const baselineReport = validatePlan(
+              planningModel(changed.files, baseline),
+              b.scenario,
+              baseline.access,
+              baseline.occupancy,
+            );
             const result = baselineReport.feasible
               ? { ...baseline, report: baselineReport }
-              : await runSolver(changed.files, b.scenario);
+              : await runSolver(changed.files, b.scenario, {
+                  disruptions: baseline.disruptions || [],
+                });
             if (psGet().version !== snapshot.version)
               fail(409, 'The dataset changed during preview. Try again.');
             send(200, {
@@ -411,7 +455,9 @@ export function createApp({
           if (psBusy) fail(409, 'A plan is already being built.');
           psBusy = true;
           try {
-            const result = await runSolver(snapshot.files, b.scenario);
+            const result = await runSolver(snapshot.files, b.scenario, {
+              disruptions: snapshot.results[b.scenario]?.disruptions || [],
+            });
             const latest = psGet();
             if (latest.version !== snapshot.version)
               fail(409, 'Dataset changed during planning. Discarded the stale result.');
@@ -452,7 +498,7 @@ export function createApp({
             result = s.results[scenario];
           if (!result) fail(404, 'Generate this scenario first.');
           const report = validatePlan(
-            loadDataset(s.files),
+            planningModel(s.files, result),
             scenario,
             result.access,
             result.occupancy,
@@ -478,6 +524,11 @@ export function createApp({
       }
       if (route === '/api/me' && req.method === 'GET') {
         send(200, { user: publicUser(u), csrf: session.csrf });
+        return;
+      }
+      const teamResult = team(route, req.method, b, u);
+      if (teamResult) {
+        send(teamResult.status, teamResult.data);
         return;
       }
       if (route === '/api/logout' && req.method === 'POST') {
@@ -606,11 +657,14 @@ export function createApp({
           'The daily crew workflow has been retired. Use the weekly track planner and contract dataset.',
         );
       if (route === '/api/users' && req.method === 'POST') {
-        scheduler();
+        if (!['scheduler', 'supervisor', 'manager'].includes(u.role))
+          fail(403, 'Your role cannot create accounts.');
+        if (u.role === 'manager' && b.role !== 'worker')
+          fail(403, 'Managers can create worker accounts only.');
         const s = get();
         if (b.version !== s.version) fail(409, 'The workspace changed. Refresh and try again.');
         const created = userCreate(b);
-        audit(s, u, 'Planner account created', null, created.name);
+        audit(s, u, 'Team account created', null, created.name + ' · ' + created.role);
         save(s);
         send(201, { user: publicUser(created) });
         return;

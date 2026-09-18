@@ -63,10 +63,21 @@ function toast(message, error = false) {
 }
 async function run(fn, button) {
   if (button) button.disabled = true;
+  document.getElementById('dialog-error')?.remove();
   try {
     await fn();
   } catch (e) {
-    toast(e.message, true);
+    if ($('modal').open) {
+      const alert = document.createElement('p');
+      alert.id = 'dialog-error';
+      alert.className = 'alert';
+      alert.setAttribute('role', 'alert');
+      alert.textContent = e.message;
+      $('modal').querySelector('.modal-body').append(alert);
+      alert.scrollIntoView({ block: 'nearest' });
+      if ($('schedule-preview') && !$('schedule-preview').querySelector('h3'))
+        $('schedule-preview').textContent = 'Preview was not saved.';
+    } else toast(e.message, true);
   } finally {
     if (button && button.isConnected) button.disabled = false;
   }
@@ -120,6 +131,8 @@ async function refresh() {
 const badge = (s, c = '') =>
   `<span class="badge ${c}">${esc(String(s).replaceAll('_', ' '))}</span>`;
 function auth(setup) {
+  clearTimeout(toastTimer);
+  $('toast').classList.add('hidden');
   state = null;
   user = null;
   chat = [];
@@ -144,12 +157,18 @@ function auth(setup) {
 }
 
 function render() {
+  if (['worker', 'manager', 'supervisor'].includes(user.role)) {
+    renderRoleWorkspace();
+    return;
+  }
   const planner = user.role === 'scheduler';
   const nav = planner
     ? [
         ['ps1', 'track', 'Track planner'],
         ['contracts', 'list', 'Contracts'],
         ['activity', 'history', 'Plan history'],
+        ['team', 'teams', 'Team availability'],
+        ['decisions', 'chat', 'Emergency decisions'],
         ['copilot', 'chat', 'Ask a question'],
         ['settings', 'settings', 'Settings'],
       ]
@@ -161,13 +180,17 @@ function render() {
     activity: 'Plan history',
     copilot: 'Ask a question',
     settings: 'Settings',
+    team: 'Team availability',
+    decisions: 'Emergency decisions',
   };
   const descriptions = {
     ps1: 'Schedule contract activities. Review track access, completion dates and capacity.',
     contracts: 'The contracts and activity limits from your imported work programme.',
     activity: 'Dataset imports and generated plans, recorded with the planner who made them.',
     copilot: 'Ask about the imported programme and a selected weekly plan.',
-    settings: 'Manage planner accounts and the optional chat connection.',
+    settings: 'Manage team accounts and the optional chat connection.',
+    team: 'Reported availability and worker assignments. Managers handle personal issues.',
+    decisions: 'Send urgent decisions to your supervisor and follow their response.',
   };
   $('app').innerHTML =
     `<div class="shell"><aside class="sidebar"><div>${workspaceBrand()}<div class="workspace-label">Track access planning</div></div><div><div class="nav-group">Workspace</div><nav aria-label="Workspace">${nav.map(([id, icon, title]) => `<button data-nav="${id}" ${id === page ? 'aria-current="page"' : ''} class="${id === page ? 'active' : ''}"><span class="icon">${uiIcon(icon)}</span>${title}</button>`).join('')}</nav></div><div class="sidebar-foot"><div class="userline"><span class="avatar">${esc(user.name.slice(0, 1))}</span><div>${esc(user.name)}<small>${planner ? 'Planner' : 'Existing account'}</small></div></div><button class="quiet" id="logout">Sign out</button></div></aside><main class="main"><div class="page-topline"><span>Trackwork / ${planner ? titles[page] : 'Access'}</span><span class="local-status">${hostInfo.hosted ? 'Hosted team workspace' : 'Local workspace'}</span></div><header><div><h1>${planner ? titles[page] : 'Planner access required'}</h1><p class="muted header-note">${planner ? descriptions[page] : 'This account belongs to the previous crew workflow. Sign in with a planner account to use track planning.'}</p></div><div class="actions">${planner ? (page === 'ps1' ? `<button id="planner-help" class="quiet">${uiIcon('help')}How to use this</button>` : `<button id="refresh">${uiIcon('refresh')}Refresh</button>`) : ''}<button id="mobile-logout" class="quiet">Sign out</button></div></header><div id="content" class="section-gap"></div><footer class="app-footer"><span>Trackwork · Track access planning</span><span>Planning prototype · Review before operational use</span></footer></main></div>`;
@@ -196,6 +219,8 @@ function render() {
       activity: renderActivity,
       copilot: renderChat,
       settings: renderSettings,
+      team: renderTeam,
+      decisions: renderTeam,
     })[page]();
 }
 async function renderContracts() {
@@ -221,15 +246,21 @@ function renderActivity() {
 }
 function accountForm() {
   dialog(
-    'Add a planner',
-    `<form id="account-form"><div class="forms"><div><label for="a-name">Name</label><input id="a-name" name="name" required maxlength="80"></div><div><label for="a-email">Sign-in email</label><input id="a-email" name="email" type="email" required></div><div class="span2"><label for="a-password">Password · at least 12 characters</label><input id="a-password" name="password" type="password" minlength="12" maxlength="200" required autocomplete="new-password"></div></div><p class="hint">Planners can replace the shared dataset, build plans, export results and manage this workspace. Share sign-in details privately; this app does not send email.</p><button class="primary section-gap">Create planner account</button></form>`,
+    'Add a team account',
+    `<form id="account-form"><div class="forms"><div><label for="a-name">Name</label><input id="a-name" name="name" required maxlength="80"></div><div><label for="a-email">Sign-in email</label><input id="a-email" name="email" type="email" required></div><div class="span2"><label for="a-password">Password · at least 12 characters</label><input id="a-password" name="password" type="password" minlength="12" maxlength="200" required autocomplete="new-password"></div></div><p class="hint">Planners can replace the shared dataset, build plans, export results and manage this workspace. Share sign-in details privately; this app does not send email.</p><button class="primary section-gap">Create team account</button></form>`,
   );
+  $('account-form')
+    .querySelector('.forms')
+    .insertAdjacentHTML(
+      'beforeend',
+      `<div class="span2"><label for="a-role">Role</label><select id="a-role" name="role">${(user.role === 'manager' ? ['worker'] : ['worker', 'manager', 'scheduler', 'supervisor']).map((r) => `<option value="${r}">${roleLabel(r)}</option>`).join('')}</select></div>`,
+    );
   $('account-form').onsubmit = (e) => {
     e.preventDefault();
     run(async () => {
-      await mutate('/users', { ...formData(e.target), role: 'scheduler' });
+      await mutate('/users', formData(e.target));
       $('modal').close();
-      toast('Planner account created.');
+      toast('Team account created.');
     }, e.submitter);
   };
 }
@@ -302,7 +333,7 @@ async function loadChat() {
 }
 function renderSettings() {
   $('content').innerHTML =
-    `<div class="grid equal"><section class="panel"><div class="panel-head"><h2>AI provider connection</h2></div><form id="ai-form" class="panel-body"><p>${badge(state.ai.configured ? (state.ai.verified ? 'Verified connection' : 'Configured · not yet tested') : 'Not connected', state.ai.verified ? '' : 'amber')}</p><div class="forms"><div><label for="ai-provider">Provider</label><select id="ai-provider" name="provider"><option value="openai" ${state.ai.provider === 'openai' ? 'selected' : ''}>OpenAI</option><option value="anthropic" ${state.ai.provider === 'anthropic' ? 'selected' : ''}>Anthropic Claude</option></select></div><div><label for="ai-model">Model ID</label><input id="ai-model" name="model" list="ai-model-options" required value="${esc(state.ai.model)}" maxlength="100"><datalist id="ai-model-options"><option value="claude-sonnet-4-6"></option><option value="claude-3-7-sonnet-latest"></option><option value="claude-3-5-haiku-latest"></option><option value="gpt-4.1-mini"></option></datalist></div><div class="span2"><label id="ai-key-label" for="ai-key">${state.ai.provider === 'anthropic' ? 'Claude API key' : 'OpenAI API key'}</label><input type="password" id="ai-key" name="key" autocomplete="off" placeholder="${state.ai.configured ? 'Leave blank to keep the current key' : 'Paste your API key here'}" maxlength="500"><p class="hint">Sent only to this local server. Held in server memory and never returned to the browser or saved in the database. Re-enter after restarting, or configure a server environment variable.</p></div></div><div class="actions section-gap"><button class="primary">Save connection</button><button id="test-ai" type="button" ${!state.ai.configured ? 'disabled' : ''}>Test live connection</button><button id="disconnect-ai" type="button" class="quiet" ${!state.ai.configured ? 'disabled' : ''}>Disconnect</button></div><p class="hint">Testing makes a small billable API request. Chat sends your message, imported programme and selected plan to the provider.</p></form></section><section class="panel"><div class="panel-body"><h2>About this workspace</h2><div class="listline"><strong>Saved workflows</strong><p>Your imported programme, generated plans, planning history and conversations are saved on this computer.</p></div><div class="listline"><strong>Planner access</strong><p>Planner accounts manage this shared workspace. PM, PC and C are activity access types, not user account roles.</p></div><div class="listline"><strong>Model configuration</strong><p>Use a model ID available to your API account. OpenAI defaults to gpt-4.1-mini; Claude defaults to claude-sonnet-4-6.</p></div><div class="listline"><strong>Local access</strong><p>This app listens on this computer only. Other planner accounts can sign in through separate browser profiles. Remote hosting needs HTTPS and deployment configuration.</p></div><p class="hint">Download the three schedule files from Track planner after building and reviewing a plan.</p></div></section></div><section class="panel section-gap"><div class="panel-head between"><h2>Planner accounts</h2><button id="add-account">Add planner</button></div><div class="panel-body">${state.users.map((u) => `<div class="listline"><strong>${esc(u.name)}</strong><p>${esc(u.email)}</p></div>`).join('')}</div></section>`;
+    `<div class="grid equal"><section class="panel"><div class="panel-head"><h2>AI provider connection</h2></div><form id="ai-form" class="panel-body"><p>${badge(state.ai.configured ? (state.ai.verified ? 'Verified connection' : 'Configured · not yet tested') : 'Not connected', state.ai.verified ? '' : 'amber')}</p><div class="forms"><div><label for="ai-provider">Provider</label><select id="ai-provider" name="provider"><option value="openai" ${state.ai.provider === 'openai' ? 'selected' : ''}>OpenAI</option><option value="anthropic" ${state.ai.provider === 'anthropic' ? 'selected' : ''}>Anthropic Claude</option></select></div><div><label for="ai-model">Model ID</label><input id="ai-model" name="model" list="ai-model-options" required value="${esc(state.ai.model)}" maxlength="100"><datalist id="ai-model-options"><option value="claude-sonnet-4-6"></option><option value="claude-3-7-sonnet-latest"></option><option value="claude-3-5-haiku-latest"></option><option value="gpt-4.1-mini"></option></datalist></div><div class="span2"><label id="ai-key-label" for="ai-key">${state.ai.provider === 'anthropic' ? 'Claude API key' : 'OpenAI API key'}</label><input type="password" id="ai-key" name="key" autocomplete="off" placeholder="${state.ai.configured ? 'Leave blank to keep the current key' : 'Paste your API key here'}" maxlength="500"><p class="hint">Sent only to this local server. Held in server memory and never returned to the browser or saved in the database. Re-enter after restarting, or configure a server environment variable.</p></div></div><div class="actions section-gap"><button class="primary">Save connection</button><button id="test-ai" type="button" ${!state.ai.configured ? 'disabled' : ''}>Test live connection</button><button id="disconnect-ai" type="button" class="quiet" ${!state.ai.configured ? 'disabled' : ''}>Disconnect</button></div><p class="hint">Testing makes a small billable API request. Chat sends your message, imported programme and selected plan to the provider.</p></form></section><section class="panel"><div class="panel-body"><h2>About this workspace</h2><div class="listline"><strong>Saved workflows</strong><p>Your imported programme, generated plans, planning history and conversations are saved on this computer.</p></div><div class="listline"><strong>Planner access</strong><p>Planner accounts manage this shared workspace. PM, PC and C are activity access types, not user account roles.</p></div><div class="listline"><strong>Model configuration</strong><p>Use a model ID available to your API account. OpenAI defaults to gpt-4.1-mini; Claude defaults to claude-sonnet-4-6.</p></div><div class="listline"><strong>Local access</strong><p>This app listens on this computer only. Other planner accounts can sign in through separate browser profiles. Remote hosting needs HTTPS and deployment configuration.</p></div><p class="hint">Download the three schedule files from Track planner after building and reviewing a plan.</p></div></section></div><section class="panel section-gap"><div class="panel-head between"><h2>Team accounts</h2><button id="add-account">Add account</button></div><div class="panel-body">${state.users.map((u) => `<div class="listline"><strong>${esc(u.name)}</strong> ${badge(roleLabel(u.role), 'neutral')}<p>${esc(u.email)}</p></div>`).join('')}</div></section>`;
   $('add-account').onclick = accountForm;
   $('ai-provider').onchange = () => {
     const claude = $('ai-provider').value === 'anthropic';

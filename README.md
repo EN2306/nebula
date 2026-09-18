@@ -27,6 +27,7 @@ Open http://127.0.0.1:3001 and create a planner account on a fresh installation.
 | [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md)                           | Implemented changes, score bounds and benchmark evidence                          |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)                               | Local, Docker and HTTPS hosting setup                                             |
 | [docs/PLANNER.md](docs/PLANNER.md)                                     | Solver rules, assumptions and current limitations                                 |
+| [docs/TEAM-WORKFLOWS.md](docs/TEAM-WORKFLOWS.md)                       | Schedule map, disruptions, worker reports, penalties and supervisor decisions     |
 | [docs/SUBMISSION.md](docs/SUBMISSION.md)                               | Deliverables and proposed three-minute demo                                       |
 | [docs/CLEANUP.md](docs/CLEANUP.md)                                     | Consolidation decisions and recovery locations                                    |
 | [CONTEXT.md](CONTEXT.md)                                               | Current handoff, runbook, feature state and update log                            |

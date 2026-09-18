@@ -31,7 +31,7 @@ Open http://127.0.0.1:3001/. On first use, create a planner account. Existing sc
 - Flat weekly access caps, physical separation, sharing, location supply, completion dates and scenario-specific ECLO rules.
 - Planner accounts, saved plan history and optional questions about the selected plan.
 
-There is no crew rostering, personal availability form, generic Sector A–D request form, fault prediction or daily shift planner. Earlier local records are preserved in dormant database tables; they are not used by the planner or chat. Existing non-planner accounts are not automatically granted planner access.
+The app includes four role-specific workspaces, worker assignments and issue reports, manager-reviewed penalty points, supervisor emergency decisions, a draggable schedule map with buffers, and validated disruption backup plans. See [team workflows](../docs/TEAM-WORKFLOWS.md). Earlier local records remain in dormant tables; legacy roles are not automatically promoted. The scheduler works in weeks, with manager-selected dates for worker assignments; it does not perform shift or skills optimisation.
 
 ## Optional chat
 

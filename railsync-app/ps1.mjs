@@ -2,6 +2,7 @@
 import { lowerBound } from './quality.mjs';
 import { repairPlan } from './repair.mjs';
 import { explainPlan } from './explain.mjs';
+import { inspectRows } from './input-checks.mjs';
 export const FILES = [
   '01_LINES.csv',
   '02_STATIONS.csv',
@@ -48,39 +49,65 @@ const HEADERS = INPUT_SCHEMA;
 export function parseCSV(text) {
   if (typeof text !== 'string' || text.length > 1000000)
     throw Error('CSV must be text, up to 1 MB per file.');
-  const rows = [];
+  const rows = [],
+    rowNumbers = [];
+  let lineNumber = 1,
+    rowStart = 1;
   let row = [],
     cell = '',
-    quoted = false;
+    quoted = false,
+    quoteClosed = false;
   for (let i = 0; i < text.length; i++) {
     const c = text[i];
+    if (quoteClosed && ![',', '\r', '\n'].includes(c))
+      throw Error(`CSV row ${lineNumber}: unexpected text after closing quote.`);
     if (c === '"') {
       if (quoted && text[i + 1] === '"') {
         cell += '"';
         i++;
-      } else quoted = !quoted;
+      } else {
+        if (!quoted && cell.length)
+          throw Error(`CSV row ${lineNumber}: quote must start at the beginning of a field.`);
+        quoteClosed = quoted;
+        quoted = !quoted;
+      }
     } else if (c === ',' && !quoted) {
       row.push(cell);
       cell = '';
+      quoteClosed = false;
     } else if ((c === '\n' || c === '\r') && !quoted) {
       if (c === '\r' && text[i + 1] === '\n') i++;
       row.push(cell);
-      if (row.some((x) => x.trim())) rows.push(row);
+      if (row.some((x) => x.trim())) {
+        rows.push(row);
+        rowNumbers.push(rowStart);
+      }
       row = [];
       cell = '';
-    } else cell += c;
+      quoteClosed = false;
+      lineNumber++;
+      rowStart = lineNumber;
+    } else {
+      cell += c;
+      if (c === '\n' || (c === '\r' && text[i + 1] !== '\n')) lineNumber++;
+    }
   }
   if (quoted) throw Error('Unclosed CSV quote.');
   row.push(cell);
-  if (row.some((x) => x.trim())) rows.push(row);
+  if (row.some((x) => x.trim())) {
+    rows.push(row);
+    rowNumbers.push(rowStart);
+  }
   if (!rows.length) throw Error('CSV is empty.');
   const header = rows.shift().map((x) => x.replace(/^\uFEFF/, '').trim());
+  rowNumbers.shift();
   if (new Set(header).size !== header.length) throw Error('Duplicate CSV columns.');
   return {
     header,
+    rowNumbers,
     rows: rows.map((r, i) => {
       if (r.length !== header.length)
-        throw Error(`CSV row ${i + 2} has ${r.length} columns; expected ${header.length}.`);
+        throw Error(`CSV row ${rowNumbers[i]} has ${r.length} columns; expected ${header.length}.`);
       return Object.fromEntries(header.map((k, j) => [k, r[j].trim()]));
     }),
   };
@@ -112,6 +139,13 @@ export function inspectInputFiles(files) {
       issues.push(`${name}: ${error.message}`);
     }
   }
+  if (!issues.length)
+    issues.push(
+      ...inspectRows(
+        FILES.map((f) => parseCSV(files[f])),
+        FILES,
+      ),
+    );
   return issues;
 }
 const day = (s) => {
@@ -398,6 +432,28 @@ export function validatePlan(d, scenario, access, occupancy) {
     };
   const violations = [],
     add = (rule, detail) => violations.push({ rule, severity: 'hard', detail });
+  for (const r of access) {
+    const a = d.am.get(r.activity_id);
+    for (const outage of d.disruptions || [])
+      if (
+        r.week >= outage.start_week &&
+        r.week <= outage.end_week &&
+        a.geometry.envelope.some((id) => outage.locations.includes(id))
+      )
+        add(
+          'disruption',
+          `${r.activity_id}, week ${r.week}: ${outage.type} blocks this work area or its safety buffer.`,
+        );
+  }
+  if (d.freeze) {
+    const stable = (rows) =>
+      JSON.stringify([...rows].sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))));
+    if (
+      stable(access.filter((r) => r.week < d.freeze.week)) !== stable(d.freeze.access) ||
+      stable(occupancy.filter((r) => r.week < d.freeze.week)) !== stable(d.freeze.occupancy)
+    )
+      add('frozen_history', 'Bookings before the disruption must remain unchanged.');
+  }
   const byWeek = new Map(),
     byActivity = new Map(),
     occ = new Map(),
@@ -573,13 +629,21 @@ export function validatePlan(d, scenario, access, occupancy) {
   };
 }
 function attempt(d, scenario, mode, windowSeed = null) {
-  const access = [],
-    occupancy = [],
+  const access = (d.freeze?.access || []).map((r) => ({ ...r })),
+    occupancy = (d.freeze?.occupancy || []).map((r) => ({ ...r })),
     weeks = new Map(),
     finished = new Map(),
     progress = new Map(),
     windows = { ...windowSeed },
     reasons = {};
+  for (const r of access) {
+    progress.set(r.activity_id, (progress.get(r.activity_id) || 0) + (r.eclo ? 1.5 : 1));
+    if (progress.get(r.activity_id) >= d.am.get(r.activity_id).work)
+      finished.set(r.activity_id, r.week);
+    if (r.eclo && scenario === 'C')
+      for (const line of d.am.get(r.activity_id).geometry.lines)
+        windows[line] = Math.min(windows[line] ?? r.week, r.week);
+  }
   const weight = (a) =>
     ({ 1: 100, 2: 10, 3: 1 })[a.project.contract_priority] *
     (1 + { 1: 0.3, 2: 0.2, 3: 0 }[a.activity_priority]);
@@ -607,10 +671,17 @@ function attempt(d, scenario, mode, windowSeed = null) {
   if (mode >= 3) for (const a of d.activities) downstream(a);
   const maxWeek = Math.min(
     1040,
-    Math.max(d.horizon, ...d.activities.map((a) => a.earliest)) +
-      d.activities.reduce((n, a) => n + a.work, 0),
+    Math.max(
+      d.horizon,
+      ...(d.disruptions || []).map((x) => x.end_week),
+      ...d.activities.map((a) => a.earliest),
+    ) + d.activities.reduce((n, a) => n + a.work, 0),
   );
-  for (let week = 1; week <= maxWeek && finished.size < d.activities.length; week++) {
+  for (
+    let week = d.freeze?.week || 1;
+    week <= maxWeek && finished.size < d.activities.length;
+    week++
+  ) {
     const slots = [],
       local = new Map(),
       used = new Map();
@@ -618,6 +689,12 @@ function attempt(d, scenario, mode, windowSeed = null) {
     const available = d.activities.filter(
       (a) =>
         !finished.has(a.activity_id) &&
+        !(d.disruptions || []).some(
+          (x) =>
+            week >= x.start_week &&
+            week <= x.end_week &&
+            a.geometry.envelope.some((id) => x.locations.includes(id)),
+        ) &&
         a.earliest <= week &&
         (!a.predecessor_activity_id ||
           (finished.has(a.predecessor_activity_id) &&
@@ -912,6 +989,9 @@ export function describe(d) {
       access_type: a.project.access_type,
       start: a.planned_start_date,
       predecessor: a.predecessor_activity_id,
+      occupied: a.geometry.occupied,
+      closures: a.geometry.closed,
+      buffers: a.geometry.envelope.filter((id) => !a.geometry.occupied.includes(id)),
     })),
   };
 }

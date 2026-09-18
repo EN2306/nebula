@@ -1,31 +1,9 @@
 {
-  "run_id": "2026-09-18T17-13-07-363Z-d888b2a2-ab95-484f-9816-12586149ef73",
-  "status": "complete",
-  "started_at": "2026-09-18T17:13:07.364Z",
-  "input_sha256": {
-    "01_LINES.csv": "69d47e99de632c08f09229b34d2642af74dba4b7a6b8870e41f853cae9793eaa",
-    "02_STATIONS.csv": "9f9f44b6c2500a26cea9b3fa2c77ba957079ab5a01fd92d7c4d0be11296340d8",
-    "03_SECTORS.csv": "4b30ddd5d31cd6abc1ab8cc152a08bbc68060e39d65a5242521593fa885efcec",
-    "04_LOCATION_SUPPLY.csv": "d5e4bdfa8c4fb3116c83a7f53749e048f5c6c5963f0343c6d825b8120e62dc35",
-    "05_BUFFER_LOCATION.csv": "2abb5e1daeafddbe73be60554d77c5e4ee544085bbcbb4d89d65c367f10dddf9",
-    "06_PARAMETERS.csv": "5765599b4475e6f2fc9fc3226357dc826b5d4008817ae513701551e7803de7bd",
-    "07_PROJECT_DETAILS.csv": "4949a7cb8826c3f234910b29988e8aa4ae9e4d6b7e6294f402a1506846ec33b8",
-    "08_ACTIVITY_DETAILS.csv": "8f0a52bc6e062b98f1c980cdacabf5c4572f091ae127fc76f734e977d2201eb6"
-  },
-  "scenarios": {
-    "A": {
-      "feasible": true,
-      "score": 25.2
-    },
-    "B": {
-      "feasible": true,
-      "score": 30
-    },
-    "C": {
-      "feasible": true,
-      "score": 25.2
-    }
-  },
+  "run_id": "2026-09-18T17-43-06-765Z-1fe0556b-25ed-4486-abe2-419d4ba64b8b",
+  "status": "failed",
+  "started_at": "2026-09-18T17:43:06.766Z",
+  "input_sha256": {},
+  "scenarios": {},
   "official_validation": false,
-  "finished_at": "2026-09-18T17:13:07.747Z"
+  "error": "ENOENT: no such file or directory, open 'C:\\IEP\\nebula\\--help\\01_LINES.csv'"
 }
