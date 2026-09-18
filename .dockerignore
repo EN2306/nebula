@@ -1,0 +1,10 @@
+**
+!railsync-app/
+!railsync-app/**
+railsync-app/data/
+railsync-app/tests/
+!problem-statement/
+!problem-statement/PS1/
+!problem-statement/PS1/01_data/
+!problem-statement/PS1/01_data/**
+!Dockerfile

@@ -1,0 +1,19 @@
+image: node:24-bookworm-slim
+
+verify:
+  script:
+    - npm ci --ignore-scripts
+    - npm run format:check
+    - npm run check:reference
+    - npm test
+    - npm run results
+    - npm run benchmark
+  artifacts:
+    when: always
+    paths:
+      - submissions/public/A/
+      - submissions/public/B/
+      - submissions/public/C/
+      - submissions/public/INTERNAL_VALIDATION.json
+      - submissions/public/RUN.json
+      - submissions/benchmark.json

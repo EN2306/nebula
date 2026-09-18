@@ -1,0 +1,6 @@
+.local/
+node_modules/
+railsync-app/data/
+problem-statement/
+submissions/
+package-lock.json

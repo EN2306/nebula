@@ -4,10 +4,10 @@ A local railway track access planner for NebulaX Problem Statement 1. It imports
 
 ## Run
 
-Requires Node.js 24 or later. No npm dependencies.
+Requires Node.js 24 or later. Scheduling has no runtime npm dependencies.
 
 ```powershell
-cd outputs/railsync-app
+cd railsync-app
 npm start
 ```
 
@@ -20,6 +20,7 @@ Open http://127.0.0.1:3001/. On first use, create a planner account. Existing sc
 3. Choose **Build plans**, then compare **Use available access** (A), **Meet target dates** (B), and **Balance access and delays** (C).
 4. Inspect the work list, weekly timeline, track capacity and network. Open an activity for its bookings and explanation.
 5. Use **Export plan** to download `SCHEDULE_ACCESS.csv`, `SCHEDULE_OCCUPANCY.csv` and `RESULTS.csv` for each scenario. Candidates failing the internal checks cannot export submission CSVs; diagnostic JSON remains available.
+6. Use **What-if capacity** to preview a flat supply change at one location. The preview reports changed weeks/ECLO without replacing saved work. **Compare plans** shows the model lower bound and remaining gap.
 
 ## Scope
 
@@ -44,8 +45,8 @@ Supported server variables: `PORT`, `RAILSYNC_DB`, `OPENAI_API_KEY`, `ANTHROPIC_
 
 Run `npm test` for workload/rule checks, import/export persistence, authentication, retired-workflow protection and provider context tests. Provider tests use stubs and do not establish a live paid API connection.
 
-The scheduling engine is a deterministic greedy heuristic with independent internal checks, not a trained model or proof of global optimality. The results have not been validated by the judges' official validator. See [planner details](PS1-PLANNER.md) for assumptions and limits.
+The scheduling engine uses deterministic search passes and validated repair. Public plans reach a mathematical lower bound under the app's model, but hidden-instance global optimality and official validation are not established. See [planner details](../docs/PLANNER.md) and [measured improvements](../docs/IMPROVEMENTS.md).
 
-This app currently listens on localhost. Public hosting, operator validation and operational dispatch approval remain outside this build. Do not publish the local database or API secrets.
+This app defaults to localhost. [Deployment instructions](../docs/DEPLOYMENT.md) cover HTTPS origins, setup tokens, persistent storage and Docker. Planner accounts share one programme. A public judging URL still needs provisioning.
 
 Reference: https://github.com/aochinwen/NebulaX-Hackathon-ProblemStatement

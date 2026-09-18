@@ -1,0 +1,20 @@
+{
+  "name": "nebula-trackwork",
+  "private": true,
+  "scripts": {
+    "start": "npm --prefix railsync-app start",
+    "test": "npm --prefix railsync-app test",
+    "results": "node railsync-app/ps1-cli.mjs",
+    "benchmark": "node railsync-app/benchmark.mjs",
+    "check:reference": "node scripts/verify-reference.mjs",
+    "test:browser": "node scripts/browser-smoke.mjs",
+    "format": "prettier --write railsync-app scripts docs README.md package.json .gitlab-ci.yml .prettierrc.json",
+    "format:check": "prettier --check railsync-app scripts docs README.md package.json .gitlab-ci.yml .prettierrc.json"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "devDependencies": {
+    "prettier": "3.6.2"
+  }
+}

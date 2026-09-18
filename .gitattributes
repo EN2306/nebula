@@ -1,0 +1,12 @@
+* text=auto
+*.mjs text eol=lf
+*.js text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+# Preserve the imported pack byte-for-byte on Windows and Linux.
+problem-statement/PS1/** -text
