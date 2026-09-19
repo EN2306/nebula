@@ -86,3 +86,7 @@ Optimization follow-up: tried 64 deterministic diversified priority orderings on
 ## Improved Scenario C submission
 
 Expanded ECLO-window exploration from 4 to 20 candidate weeks per line (up to 400 pairs) on datasets with at most 100 activities. C improved from 29.1 to 26.1; A remains 32.2 and B 30. Tried 40 weeks per line and reserved bottleneck passes with no further improvement; retained the cheaper useful search. Remaining relaxed-bound gaps: A 7, B 0, C 0.9. This does not prove global optimality or official acceptance.
+
+## Public optimality proof
+
+Exhaustive relaxed subproblem enumeration in scripts/prove-public.mjs now proves tighter bounds A 32.2, B 30, C 26.1, matching the submitted feasible schedules. A036/A075 closure interaction plus A059 cost suffices. This supersedes the earlier unproven-gap statement for this public instance under the corrected internal model only; official acceptance remains unverified. See docs/PUBLIC-OPTIMALITY.md and submissions/public/OPTIMALITY.json.

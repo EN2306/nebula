@@ -1,0 +1,41 @@
+{
+  "scope": "Public instance and corrected internal weekly closure model only. Official validator acceptance is not certified.",
+  "scenarios": {
+    "A": {
+      "pair_A036_A075": 25.2,
+      "A059": 7,
+      "lower_bound": 32.2,
+      "feasible_score": 32.2,
+      "optimal_under_internal_model": true,
+      "enumerated_patterns": [
+        8,
+        9,
+        120
+      ]
+    },
+    "B": {
+      "pair_A036_A075": 20,
+      "A059": 10,
+      "lower_bound": 30,
+      "feasible_score": 30,
+      "optimal_under_internal_model": true,
+      "enumerated_patterns": [
+        6,
+        10,
+        81
+      ]
+    },
+    "C": {
+      "pair_A036_A075": 19.1,
+      "A059": 7,
+      "lower_bound": 26.1,
+      "feasible_score": 26.1,
+      "optimal_under_internal_model": true,
+      "enumerated_patterns": [
+        13,
+        16,
+        400
+      ]
+    }
+  }
+}
