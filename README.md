@@ -15,9 +15,9 @@ npm run benchmark
 
 Open http://127.0.0.1:3001 and create a planner account on a fresh installation. An existing local installation retains its accounts. `npm run results` regenerates the public A/B/C outputs without changing the application database.
 
-## GitLab CI and repository handoff
+## CI and repository handoff
 
-The root [`.gitlab-ci.yml`](.gitlab-ci.yml) runs on Node 24 for every GitLab push and merge request. It checks formatting and the official-source checksums, runs the 24 solver/API/privacy tests, regenerates the A/B/C schedule evidence, and saves the generated submission files and benchmark as 14-day job artifacts. Browser smoke tests are intentionally local because they require Microsoft Edge.
+The root [`.gitlab-ci.yml`](.gitlab-ci.yml) and [GitHub Actions workflow](.github/workflows/ci.yml) run on Node 24 for pushes and merge requests. They check formatting and the official-source checksums, run the 24 solver/API/privacy tests, regenerate the A/B/C schedule evidence, and save the generated submission files and benchmark as 14-day artifacts. Browser smoke tests are intentionally local because they require Microsoft Edge.
 
 This checkout currently has only a GitHub remote, so it has no GitLab repository URL to publish. Import this repository into GitLab or add its URL as a remote, then push `main`; the pipeline starts automatically:
 
@@ -26,7 +26,7 @@ git remote add gitlab https://gitlab.com/your-group/nebula.git
 git push -u gitlab main
 ```
 
-The four-account visibility contract and its server-side enforcement are documented in [docs/TEAM-WORKFLOWS.md](docs/TEAM-WORKFLOWS.md). The GitLab pipeline exercises the same API and privacy checks through `npm test`.
+The four-account visibility contract and its server-side enforcement are documented in [docs/TEAM-WORKFLOWS.md](docs/TEAM-WORKFLOWS.md). Both CI pipelines exercise the same API and privacy checks through `npm test`.
 
 ## Repository map
 
