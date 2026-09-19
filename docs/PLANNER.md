@@ -55,4 +55,4 @@ Pinned public repository commit: `966c976005db2e3e40a691cff268fdb8f396a5df`. Ori
 
 ## Deployment status
 
-Localhost is the default. The build supports a configured HTTPS origin, Secure cookies, protected first-account setup and a non-root Docker image. See [deployment instructions](DEPLOYMENT.md). It is not yet the publicly hosted judging URL; a persistent host and external HTTPS endpoint still need provisioning.
+Localhost is the default. The build supports a configured HTTPS origin, Secure cookies, protected first-account setup, a non-root Docker image and a disposable Vercel demo at `https://nebula-trackwork.vercel.app`. See [deployment instructions](DEPLOYMENT.md). Vercel's SQLite filesystem is ephemeral; use Docker with a persistent volume for durable judging data.

@@ -5,7 +5,7 @@ The [official brief, section 4](../problem-statement/PS1/PS1_README.md) requires
 | Deliverable                | Current state                                                 | Completion check                                                                                                         |
 | -------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | Public test results        | A/B/C CSVs in `submissions/public/`; internal report included | Regenerate from final code; validate with official tooling when available; each scenario has exactly three required CSVs |
-| Hosted live web app URL    | Docker and HTTPS configuration ready; public URL outstanding  | External judge can import an unseen eight-file instance, solve, inspect and export                                       |
+| Hosted live web app URL    | https://nebula-trackwork.vercel.app (disposable Vercel demo)  | External judge can import an unseen eight-file instance, solve, inspect and export                                       |
 | Three-minute YouTube video | Outstanding                                                   | Accessible link showing real workflow and trade-offs                                                                     |
 | GitLab repository URL      | Outstanding in this workspace                                 | Publish complete source, setup instructions and references; verify from a fresh clone                                    |
 

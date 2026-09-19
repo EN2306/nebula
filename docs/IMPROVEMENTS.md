@@ -64,3 +64,9 @@ npm run test:browser
 ```
 
 Remaining competition gates are official-validator access/agreement, a provisioned public HTTPS URL, the GitLab submission and the three-minute video. Geometry interpretation and global optimality on hidden instances remain unverified. See [deployment instructions](DEPLOYMENT.md) and [submission checklist](SUBMISSION.md).
+
+# Programme overview and visual redesign
+
+The planner now opens on a responsive overview with weekly workload bars, a selectable week handover, direct navigation into that week's schedule map and capacity view, and a filterable deadline watchlist. A downloadable Markdown planning brief includes the saved plan reference, scenario tradeoffs, incomplete work, deadline concerns, capacity requests and active disruptions. The interface uses a dark sidebar, green planning accents and a consolidated Planning tools menu.
+
+Risk calculations now retain all activities before aggregating contractors and distinguish incomplete work from a completed activity with a deadline delay. Deadline margin is calculated from the saved schedule and is not a forecast of future disruption.

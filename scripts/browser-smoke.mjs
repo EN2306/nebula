@@ -96,6 +96,47 @@ try {
   await until('!!psData?.summary');
   await evaluate("psGenerate(['A','B','C'])");
   assert.equal(await evaluate('psData.results.B.report.soft_scores.objective_score'), 30);
+  await until("!!document.querySelector('#overview-brief')");
+  assert.equal(await evaluate("document.querySelectorAll('[data-overview-week]').length"), 12);
+  await evaluate('document.querySelector(\'[data-overview-week="2"]\').click()');
+  assert.equal(await evaluate('overviewWeek'), 2);
+  assert(
+    await evaluate(
+      "(async()=>{const i=await api('/ps1/insights?scenario='+psScenario);const brief=planningBriefText(i,psData.results[psScenario]);return brief.includes('Week 2 handover') && brief.includes(i.plan_token)})()",
+    ),
+  );
+  await evaluate('document.querySelector(\'[data-overview-filter="late"]\').click()');
+  assert.equal(await evaluate("document.querySelector('#overview-filter').value"), 'late');
+  await evaluate("overviewFilter='attention';psOverview();window.scrollTo(0,0)");
+  await until("!!document.querySelector('#overview-brief')");
+  let overviewShot = await send('Page.captureScreenshot', { format: 'png' });
+  writeFileSync(path.join(root, 'overview-desktop.png'), Buffer.from(overviewShot.data, 'base64'));
+  await evaluate(
+    "document.querySelector('.overview-grid').scrollIntoView({block:'start'});document.querySelector('#toast').classList.add('hidden')",
+  );
+  overviewShot = await send('Page.captureScreenshot', { format: 'png' });
+  writeFileSync(path.join(root, 'overview-details.png'), Buffer.from(overviewShot.data, 'base64'));
+  await evaluate("window.scrollTo(0,0);document.querySelector('.planner-toolbox summary').click()");
+  assert(await evaluate("document.querySelector('#manual-move').getBoundingClientRect().height>0"));
+  await evaluate("document.querySelector('.planner-toolbox summary').click()");
+  await send('Emulation.setDeviceMetricsOverride', {
+    width: 390,
+    height: 844,
+    deviceScaleFactor: 1,
+    mobile: true,
+  });
+  assert(await evaluate('document.documentElement.scrollWidth<=window.innerWidth+1'));
+  overviewShot = await send('Page.captureScreenshot', { format: 'png' });
+  writeFileSync(path.join(root, 'overview-mobile.png'), Buffer.from(overviewShot.data, 'base64'));
+  await send('Emulation.setDeviceMetricsOverride', {
+    width: 1440,
+    height: 1000,
+    deviceScaleFactor: 1,
+    mobile: false,
+  });
+  await evaluate("document.querySelector('#overview-open-week').click()");
+  assert.equal(await evaluate('mapStart'), 2);
+  assert.equal(await evaluate('psTab'), 'network');
   await evaluate("psTab='compare';paintPS1()");
   assert(await evaluate("document.body.innerText.includes('Bound reached')"));
   let screenshot = await send('Page.captureScreenshot', { format: 'png' });
@@ -218,7 +259,7 @@ try {
   );
   assert.deepEqual(errors, []);
   console.log(
-    'Browser passed: planner, buffer map, backup preview, CSV templates, four-role account form, worker report, manager review and supervisor emergency decision; desktop/mobile screenshots saved to .local/browser-check.',
+    'Browser passed: overview, weekly drilldown, deadline filters, planning brief, toolbox, buffer map, backup preview, CSV templates and four-role workflows; desktop/mobile screenshots saved to .local/browser-check.',
   );
   await send('Browser.close');
 } finally {

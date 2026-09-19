@@ -49,8 +49,11 @@ export function createApp({
   fetcher = fetch,
   publicOrigin = process.env.RAILSYNC_PUBLIC_ORIGIN || '',
   setupToken = process.env.RAILSYNC_SETUP_TOKEN || '',
+  additionalOrigins = [],
+  ephemeral = false,
 } = {}) {
   const deployment = deploymentConfig(publicOrigin);
+  deployment.alternatives = additionalOrigins.map((origin) => deploymentConfig(origin));
   if (dbPath !== ':memory:') mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new DatabaseSync(dbPath);
   db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;
@@ -95,6 +98,7 @@ export function createApp({
       Object.entries(s.results).map(([key, value]) => [key, planFingerprint(value)]),
     ),
   });
+  const sessionCookie = 'railsync_session';
   let psBusy = false;
   const get = () => {
     const row = db.prepare('SELECT body FROM planning_workspace WHERE id=1').get();
@@ -212,7 +216,7 @@ export function createApp({
     );
     res.setHeader(
       'Set-Cookie',
-      `railsync_${server.address().port}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800${deployment.secure ? '; Secure' : ''}`,
+      `${sessionCookie}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800${deployment.secure ? '; Secure' : ''}`,
     );
     return { user: publicUser(u), csrf };
   }
@@ -245,6 +249,8 @@ export function createApp({
           '/team-ui.js': 'team-ui.js',
           '/schedule-ui.js': 'schedule-ui.js',
           '/features.css': 'features.css',
+          '/overview-ui.js': 'overview-ui.js',
+          '/design.css': 'design.css',
         };
         if (!files[route]) fail(404, 'Not found');
         res.setHeader(
@@ -264,6 +270,7 @@ export function createApp({
           setupRequired: !db.prepare('SELECT id FROM users LIMIT 1').get(),
           setupTokenRequired: !!setupToken || deployment.secure,
           hosted: deployment.secure,
+          ephemeral,
         });
         return;
       }
@@ -273,11 +280,26 @@ export function createApp({
           fail(403, 'Request origin rejected.');
         if (!String(req.headers['content-type']).startsWith('application/json'))
           fail(415, 'JSON required.');
-        let raw = '';
-        for await (const chunk of req) {
-          raw += chunk;
-          if (Buffer.byteLength(raw) > (route.startsWith('/api/ps1/') ? 8500000 : 40000))
-            fail(413, 'Request too large.');
+        const maxBytes = route.startsWith('/api/ps1/') ? 8500000 : 40000;
+        let raw = '',
+          parsed;
+        try {
+          parsed = req.body;
+        } catch {
+          fail(400, 'Invalid JSON.');
+        }
+        if (parsed !== undefined) {
+          raw = typeof parsed === 'string' ? parsed : JSON.stringify(parsed);
+          if (Buffer.byteLength(raw) > maxBytes) fail(413, 'Request too large.');
+        } else {
+          const chunks = [];
+          let bytes = 0;
+          for await (const chunk of req) {
+            bytes += Buffer.byteLength(chunk);
+            if (bytes > maxBytes) fail(413, 'Request too large.');
+            chunks.push(Buffer.from(chunk));
+          }
+          raw = Buffer.concat(chunks).toString('utf8');
         }
         try {
           b = JSON.parse(raw || '{}');
@@ -313,7 +335,7 @@ export function createApp({
         send(200, login(u, res));
         return;
       }
-      const cookieName = 'railsync_' + server.address().port + '=';
+      const cookieName = sessionCookie + '=';
       const token = (req.headers.cookie || '')
         .split('; ')
         .find((x) => x.startsWith(cookieName))
@@ -395,7 +417,11 @@ export function createApp({
           const result = snapshot.results[scenario];
           if (!snapshot.files || !result)
             fail(404, 'Build this scenario before opening risk insights.');
-          send(200, buildInsights(loadDataset(snapshot.files), result));
+          send(200, {
+            ...buildInsights(planningModel(snapshot.files, result), result),
+            dataset_version: snapshot.version,
+            plan_token: planFingerprint(result),
+          });
           return;
         }
         if (route === '/api/ps1/import' && req.method === 'POST') {
@@ -535,7 +561,7 @@ export function createApp({
         db.prepare('DELETE FROM sessions WHERE token=?').run(session.token);
         res.setHeader(
           'Set-Cookie',
-          'railsync_' + server.address().port + '=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0',
+          sessionCookie + '=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0',
         );
         send(200, { ok: true });
         return;

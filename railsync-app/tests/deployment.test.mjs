@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createApp } from '../server.mjs';
 import { deploymentConfig } from '../deployment.mjs';
 import http from 'node:http';
+import { once } from 'node:events';
 
 test('public deployment validates hosts/origins, protects setup and uses secure sessions', async (t) => {
   const app = createApp({
@@ -45,4 +46,86 @@ test('public deployment validates hosts/origins, protects setup and uses secure 
     'https://user:pass@judge.example',
   ])
     assert.throws(() => deploymentConfig(origin), /HTTPS origin/);
+});
+
+test('serverless adapter handles parsed bodies, sessions, exact aliases and worker assets without listening', async (t) => {
+  const app = createApp({
+    dbPath: ':memory:',
+    publicOrigin: 'https://trackwork.vercel.app',
+    additionalOrigins: ['https://trackwork-build.vercel.app'],
+    setupToken: 'serverless-test-setup',
+    ephemeral: true,
+  });
+  const gateway = http.createServer(async (req, res) => {
+    if (req.method === 'POST') {
+      const chunks = [];
+      for await (const chunk of req) chunks.push(chunk);
+      // Simulate Vercel's parsed-body helper consuming the original stream.
+      req.body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    }
+    app.server.emit('request', req, res);
+  });
+  gateway.listen(0, '127.0.0.1');
+  await once(gateway, 'listening');
+  t.after(async () => {
+    await new Promise((resolve) => gateway.close(resolve));
+    app.db.close();
+  });
+  const base = 'http://127.0.0.1:' + gateway.address().port;
+  let cookie = '',
+    csrf = '';
+  const request = (route, body, host = 'trackwork-build.vercel.app') =>
+    new Promise((resolve, reject) => {
+      const req = http.request(
+        base + route,
+        {
+          method: body === undefined ? 'GET' : 'POST',
+          headers: {
+            host,
+            origin: 'https://' + host,
+            cookie,
+            'content-type': 'application/json',
+            'x-csrf-token': csrf,
+          },
+        },
+        (res) => {
+          let content = '';
+          res.on('data', (chunk) => (content += chunk));
+          res.on('end', () => {
+            if (res.headers['set-cookie']) cookie = res.headers['set-cookie'][0].split(';')[0];
+            const data = res.headers['content-type']?.includes('application/json')
+              ? JSON.parse(content)
+              : content;
+            if (data.csrf) csrf = data.csrf;
+            resolve({ status: res.statusCode, data });
+          });
+        },
+      );
+      req.on('error', reject);
+      req.end(body === undefined ? undefined : JSON.stringify(body));
+    });
+  assert.equal(app.server.listening, false);
+  assert.equal((await request('/api/health')).data.ephemeral, true);
+  assert.equal((await request('/api/health', undefined, 'wrong.vercel.app')).status, 403);
+  assert.equal(
+    (
+      await request('/api/setup', {
+        setupToken: 'serverless-test-setup',
+        name: 'Hosted planner',
+        email: 'host@test.local',
+        password: 'serverless-test-password',
+      })
+    ).status,
+    201,
+  );
+  assert.equal((await request('/api/me', undefined, 'trackwork.vercel.app')).status, 200);
+  const imported = await request('/api/ps1/import', { version: 0, sample: true });
+  assert.equal(imported.status, 200);
+  const solved = await request('/api/ps1/solve', { version: imported.data.version, scenario: 'A' });
+  assert.equal(solved.status, 200);
+  assert(solved.data.report.feasible);
+  const insight = await request('/api/ps1/insights?scenario=A');
+  assert.equal(insight.data.deadline_watch.length, 54);
+  for (const asset of ['/overview-ui.js', '/design.css'])
+    assert.equal((await request(asset)).status, 200);
 });

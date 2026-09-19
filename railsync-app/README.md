@@ -47,6 +47,6 @@ Run `npm test` for workload/rule checks, import/export persistence, authenticati
 
 The scheduling engine uses deterministic search passes and validated repair. Public plans reach a mathematical lower bound under the app's model, but hidden-instance global optimality and official validation are not established. See [planner details](../docs/PLANNER.md) and [measured improvements](../docs/IMPROVEMENTS.md).
 
-This app defaults to localhost. [Deployment instructions](../docs/DEPLOYMENT.md) cover HTTPS origins, setup tokens, persistent storage and Docker. Planner accounts share one programme. A public judging URL still needs provisioning.
+This app defaults to localhost. [Deployment instructions](../docs/DEPLOYMENT.md) cover HTTPS origins, setup tokens, persistent storage, Docker and the disposable Vercel demo. Planner accounts share one programme.
 
 Reference: https://github.com/aochinwen/NebulaX-Hackathon-ProblemStatement

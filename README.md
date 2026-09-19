@@ -26,6 +26,7 @@ Open http://127.0.0.1:3001 and create a planner account on a fresh installation.
 | [docs/REVIEW.md](docs/REVIEW.md)                                       | Findings and prioritised improvement plan                                         |
 | [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md)                           | Implemented changes, score bounds and benchmark evidence                          |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)                               | Local, Docker and HTTPS hosting setup                                             |
+| [vercel.json](vercel.json)                                             | Vercel serverless demo routing and packaged assets                                |
 | [docs/PLANNER.md](docs/PLANNER.md)                                     | Solver rules, assumptions and current limitations                                 |
 | [docs/TEAM-WORKFLOWS.md](docs/TEAM-WORKFLOWS.md)                       | Schedule map, disruptions, worker reports, penalties and supervisor decisions     |
 | [docs/SUBMISSION.md](docs/SUBMISSION.md)                               | Deliverables and proposed three-minute demo                                       |
@@ -38,6 +39,6 @@ Runtime data stays in `railsync-app/data/` and is ignored by Git. Optional chat 
 
 All 54 public activities are completed in each scenario with zero internal violations. Internal penalties: A **25.2**, B **30**, C **25.2**. B improves from 44 with no extra track slots. All three public plans reach a mathematical lower bound under the app's weekly model. These are different scenario objectives; compare each plan with its own bound.
 
-The deterministic solver combines multiple scheduling policies, bounded repair and ECLO-window search. The planner includes capacity impact previews and schedule evidence. Official validator agreement and global optimality on hidden instances remain unverified. Localhost is the default; [HTTPS hosting support](docs/DEPLOYMENT.md) is implemented, but a public judging URL still needs provisioning.
+The deterministic solver combines multiple scheduling policies, bounded repair and ECLO-window search. The planner includes capacity impact previews, schedule evidence, weekly workload overview, deadline watchlists and planning briefs. Official validator agreement and global optimality on hidden instances remain unverified. The live disposable demo is [nebula-trackwork.vercel.app](https://nebula-trackwork.vercel.app); use Docker with persistent SQLite for durable judging data.
 
 Source: [official PS1 brief](https://github.com/aochinwen/NebulaX-Hackathon-ProblemStatement/tree/966c976005db2e3e40a691cff268fdb8f396a5df/PS1).

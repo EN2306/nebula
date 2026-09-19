@@ -3,7 +3,7 @@ let psData = null,
   psWeek = 0,
   psContract = '',
   psLoading = false,
-  psTab = 'work',
+  psTab = 'overview',
   psLayout = 'list',
   psSearch = '',
   psLine = '',
@@ -76,7 +76,7 @@ async function psInsights() {
               .slice(0, 10)
               .map(
                 (risk) =>
-                  `<tr><td>${esc(risk.activity_id)}</td><td>${esc(risk.contract)}</td><td>P${risk.priority}</td><td>${risk.delay_days} days</td><td>${risk.score}</td></tr>`,
+                  `<tr><td>${esc(risk.activity_id)}</td><td>${esc(risk.contract)}</td><td>P${risk.priority}</td><td>${risk.completed ? risk.delay_days + ' days' : 'Incomplete'}</td><td>${risk.score}</td></tr>`,
               )
               .join('')}</tbody></table></div>`
           : '<p class="muted">No scored priority risks in this plan.</p>'
@@ -86,11 +86,11 @@ async function psInsights() {
               .slice(0, 8)
               .map(
                 (location) =>
-                  `<li><strong>${esc(location.location)}</strong> · week ${location.week} · ${location.used}/${location.capacity} slots · ${location.affected_activities.join(', ')}</li>`,
+                  `<li><strong>${esc(location.location)}</strong> · week ${location.week} · ${location.used}/${location.capacity} slots · ${esc(location.affected_activities.join(', '))}</li>`,
               )
               .join('')}</ul>`
           : '<p class="muted">No locations at or above nominal capacity.</p>'
-      }<h3 class="section-gap">Contractor negotiation prompts</h3>${insight.negotiation.length ? `<ul>${insight.negotiation.map((item) => `<li>${esc(item.request)} Affects ${item.affected_activities.join(', ')}.</li>`).join('')}</ul>` : '<p class="muted">No additional slot request is indicated for this plan.</p>'}<p class="hint">${esc(insight.note)}</p>`,
+      }<h3 class="section-gap">Contractor negotiation prompts</h3>${insight.negotiation.length ? `<ul>${insight.negotiation.map((item) => `<li>${esc(item.request)} Affects ${esc(item.affected_activities.join(', '))}.</li>`).join('')}</ul>` : '<p class="muted">No additional slot request is indicated for this plan.</p>'}<p class="hint">${esc(insight.note)}</p>`,
     );
   } catch (error) {
     toast(error.message, true);
@@ -238,9 +238,10 @@ function paintPS1() {
        `<div class="compact-stat"><span>${label}</span><strong class="${cls}">${value}</strong><small>${note}</small></div>`,
    )
    .join('')}</section>
- <div class="planner-toolbar"><div><h2>Work programme</h2><p>${hasPlans ? 'Choose a plan, then review its schedule and access needs.' : 'Your jobs are ready. Build plans to find suitable track access.'}</p></div><div class="actions">${r ? `<button id="ps-insights" ${busy}>Risk & handover</button><button id="ps-what-if" ${busy}>What-if capacity</button><button id="ps-export" ${busy}>${uiIcon('download')}Export plan</button>` : ''}<button class="primary" id="ps-all" ${busy}>${psLoading ? 'Building plans…' : hasPlans ? 'Rebuild plans' : 'Build plans'}</button></div></div>
+ <div class="planner-toolbar"><div><h2>Work programme</h2><p>${hasPlans ? 'Choose a plan, then review its schedule and access needs.' : 'Your jobs are ready. Build plans to find suitable track access.'}</p></div><div class="actions">${r ? `<details class="planner-toolbox"><summary>Planning tools</summary><div class="toolbox-menu"><button id="ps-insights" ${busy}>Risk & handover</button><button id="ps-what-if" ${busy}>What-if capacity</button><div id="schedule-tool-slot"></div></div></details><button id="ps-export" ${busy}>${uiIcon('download')}Export plan</button>` : ''}<button class="primary" id="ps-all" ${busy}>${psLoading ? 'Building plans…' : hasPlans ? 'Rebuild plans' : 'Build plans'}</button></div></div><div id="active-disruptions"></div>
  ${psLoading ? `<div class="build-progress" role="status">${esc(psProgress || 'Checking work and track availability…')}</div>` : ''}
  <section class="panel ${psLoading ? 'section-gap' : ''}"><div class="planner-tabs" role="tablist" aria-label="Programme views">${[
+   ['overview', 'Overview', null],
    ['work', 'Work schedule', d.activities],
    ['compare', 'Compare plans', null],
    ['capacity', 'Track capacity', null],
@@ -297,7 +298,13 @@ function paintPS1() {
       $('tab-' + psTab).focus();
     };
   });
-  ({ work: psWork, compare: psCompare, capacity: psCapacity, network: psNetwork })[psTab]();
+  ({
+    overview: psOverview,
+    work: psWork,
+    compare: psCompare,
+    capacity: psCapacity,
+    network: psNetwork,
+  })[psTab]();
   mountScheduleTools();
 }
 function resetPlannerFilters() {
@@ -307,7 +314,7 @@ function resetPlannerFilters() {
   psLine = '';
   psPage = 0;
   psTimelineStart = 1;
-  psTab = 'work';
+  psTab = 'overview';
 }
 async function psImportSample() {
   psData = await api('/ps1/import', { version: psData.version, sample: true });
@@ -383,7 +390,7 @@ async function psGenerate(scenarios) {
       if (user?.id !== owner) return;
       psData.results[scenario] = result;
     }
-    psTab = 'compare';
+    psTab = 'overview';
     psPage = 0;
     toast('Plans are ready. Compare the access needed and any delayed contracts.');
   } catch (e) {

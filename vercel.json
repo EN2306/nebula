@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "framework": null,
+  "buildCommand": "",
+  "outputDirectory": "railsync-app/public",
+  "functions": {
+    "api/index.mjs": {
+      "maxDuration": 120,
+      "includeFiles": "{railsync-app/*.mjs,railsync-app/public/**,problem-statement/PS1/01_data/**}"
+    }
+  },
+  "rewrites": [{ "source": "/(.*)", "destination": "/api/index" }]
+}
