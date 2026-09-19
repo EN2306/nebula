@@ -6,7 +6,7 @@ This file is the handoff point for the project. Update it whenever the app is st
 
 - Canonical app: `railsync-app/`; official source pack: `problem-statement/PS1/`.
 - Local URL: `http://127.0.0.1:3001`.
-- Production demo URL: `https://nebula-trackwork.vercel.app` (deployment `dpl_Doeejwn23hopkGSpwvvHpdWpfzxZ`, aliased production deployment `nebula-trackwork-11xkcdpkj-energelpens-projects.vercel.app`).
+- Production demo URL: `https://nebula-trackwork.vercel.app` (deployment `dpl_6KrkCyf971eVJrU31ump1kiDwWyY`, aliased production deployment `nebula-trackwork-790ecbkpz-energelpens-projects.vercel.app`).
 - Hosted demo login: `planner@nebula.local`. The generated password is stored only in ignored `.local/deployment/vercel-planner.json`; do not commit or publish it.
 - Fresh local planner account was created during the 2026-09-19 reset. The password is intentionally not recorded here; use the credential supplied in the active session or create another planner from Settings.
 - Public PS1 baseline: 54/54 activities complete in A, B and C, zero internal violations; internal penalties A 25.2, B 30, C 25.2.
@@ -58,3 +58,4 @@ The app reads `.env` when started with `node --env-file=.env railsync-app/server
 - 2026-09-19: Verified the Vercel adapter imports locally with an ignored SQLite fallback; production Vercel uses `/tmp` and requires durable storage for persistent judging data.
 - 2026-09-19: Linked Vercel project `nebula-trackwork`, configured a production-only secret setup token, deployed production, and received the live URL `https://nebula-trackwork.vercel.app`. Hosted verification reached health, packaged assets, exclusions, account setup, sample import and A/B/C solver completion (54/54 each); the final verification rerun was blocked by the environment network approval limit after correcting its CSV-header assertion.
 - 2026-09-19: Added `compose.yaml` for a named-volume Docker deployment, rebuilt the image, recreated the container, and verified health, account login/setup, sample import, A/B/C solver completion (54/54 each), insights, CSV export (`activity_id,` header), and logout. The corrected hosted verifier now checks the real `SCHEDULE_ACCESS.csv` header (`activity_id,`).
+- 2026-09-19: Committed the planner redesign and deployment work as `46bc647` (`Ship planner redesign and deployment support`), stored `ANTHROPIC_API_KEY` as a Vercel Production secret, and deployed production `dpl_6KrkCyf971eVJrU31ump1kiDwWyY`. The Vercel deployment remains a serverless demo with ephemeral SQLite; use the Docker host for durable accounts and plans.
