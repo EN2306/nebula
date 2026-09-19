@@ -73,3 +73,4 @@ The app reads `.env` when started with `node --env-file=.env railsync-app/server
 - Added `Dockerfile.vercel` and Vercel Services routing so Vercel can build and run the same Node application as an OCI container function.
 - The Vercel image listens on port 80 and writes only to `/tmp`. This is intentional: Vercel container functions are stateless and cannot mount the local Docker named volume. Durable user accounts, sessions, and plans require a future external database migration.
 - Local Docker remains the persistent demonstration host through the `nebula_trackwork-data` named volume and `Dockerfile`.
+- Production container deployment: `dpl_9d5nMAceJXBPNETT79HkVpvkFsZr`, available at `https://nebula-trackwork.vercel.app` (deployed from commit `1a77794`).
