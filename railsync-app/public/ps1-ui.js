@@ -265,6 +265,7 @@ function paintPS1() {
    )}</select></div><div class="plan-status ${rep && !rep.feasible ? 'warning' : ''}">${rep ? `${uiIcon(rep.feasible ? 'check' : 'help')}${rep.feasible ? 'Draft · automatic checks passed' : `${rep.hard_violations.length} issues to review`}` : 'No schedule built yet'}</div></div><div id="planner-body" role="tabpanel" aria-labelledby="tab-${psTab}"></div></section>`;
   if ($('ps-sample')) $('ps-sample').onclick = (e) => run(() => psImportSample(), e.target);
   $('ps-upload').onclick = psImportDialog;
+  applyPlanPermissions();
   if (!d) return;
   $('ps-refresh').onclick = (e) => run(renderPS1, e.target);
   $('ps-all').onclick = () => psGenerate(['A', 'B', 'C']);
@@ -306,6 +307,7 @@ function paintPS1() {
     network: psNetwork,
   })[psTab]();
   mountScheduleTools();
+  applyPlanPermissions();
 }
 function resetPlannerFilters() {
   psWeek = 0;

@@ -2,6 +2,104 @@ const roleLabel = (r) =>
   ({ scheduler: 'Planner', supervisor: 'Supervisor', manager: 'Manager', worker: 'Worker' })[r] ||
   r;
 let teamData = null;
+function applyPlanPermissions() {
+  if (user.role === 'scheduler') return;
+  for (const id of ['ps-upload', 'ps-sample', 'ps-all', 'overview-build', 'overview-disruption'])
+    if ($(id)) $(id).hidden = true;
+  document.querySelectorAll('[data-build-plan]').forEach((b) => {
+    b.hidden = true;
+    b.disabled = true;
+  });
+  if (user.role === 'manager' && $('ps-what-if')) $('ps-what-if').hidden = true;
+  if (!psData?.summary) {
+    $('content').innerHTML =
+      '<section class="panel panel-body"><h2>No programme has been loaded yet</h2><p>A planner can import the eight programme files. Saved schedules, contracts and risks will appear here for review.</p></section>';
+    return;
+  }
+  if (!$('readonly-plan-context')) {
+    const note = document.createElement('div');
+    note.id = 'readonly-plan-context';
+    note.className = 'schedule-help';
+    const r = psData.results[psScenario];
+    note.innerHTML = `<strong>Schedule review</strong><p>Explore the map, compare scenarios, inspect risks and download saved plans. Planners manage schedule changes.${user.role === 'supervisor' ? ' Use Emergency decisions to record your instructions.' : ' Use Worker issues & assignments to arrange staffing.'}</p>${(r?.disruptions || []).map((x) => `<p>${esc(x.type)}: ${esc(x.location)}, weeks ${x.start_week}–${x.end_week}</p>`).join('')}`;
+    $('content').prepend(note);
+  }
+}
+async function renderOverview() {
+  const owner = user.id;
+  $('content').innerHTML = '<div class="panel empty">Loading programme and team status…</div>';
+  try {
+    const data = await api('/team/state');
+    if (user?.id !== owner || page !== 'overview') return;
+    teamData = data;
+    const ps = data.programme,
+      results = Object.entries(ps?.results || {}),
+      supervisor = user.role === 'supervisor';
+    const pending = data.issues.filter((x) => x.status === 'pending'),
+      decisions = data.decisions.filter((x) => x.status === 'pending' && !x.stale),
+      stale = data.assignments.filter((x) => x.stale),
+      active = data.assignments.filter((x) => x.status === 'assigned');
+    const today = teamDate(),
+      absent = data.availability.filter((x) => x.date === today);
+    const stats = supervisor
+      ? [
+          ['Activities in programme', ps?.summary?.activities ?? 0],
+          ['Urgent decisions', decisions.length],
+          ['Worker reports pending', pending.length],
+          ['Active assignments', active.length],
+          ['Assignments to reconfirm', stale.length],
+          ['Workers unavailable today', absent.length],
+        ]
+      : [
+          ['Workers', data.people.filter((x) => x.role === 'worker').length],
+          ['Reports to review', pending.length],
+          ['Assignments to reconfirm', stale.length],
+          ['Active assignments', active.length],
+          ['Workers unavailable today', absent.length],
+          ['Completed tasks', data.assignments.filter((x) => x.status === 'completed').length],
+        ];
+    $('content').innerHTML =
+      `<div class="feature-stats">${stats.map(([label, value]) => `<div><small>${label}</small><b>${value}</b></div>`).join('')}</div><section class="panel section-gap"><div class="panel-head"><h2>Needs attention</h2></div><div class="panel-body overview-actions">${supervisor ? `<button data-overview-nav="decisions" class="${decisions.length ? 'danger-button' : ''}">${decisions.length} emergency decisions awaiting response</button>` : ''}<button data-overview-nav="team">${pending.length} worker reports ${supervisor ? 'awaiting manager review' : 'to review'}</button><button data-overview-nav="team">${stale.length} assignments need reconfirmation</button><button data-overview-nav="accounts">Manage team accounts</button></div></section><section class="panel section-gap"><div class="panel-head between"><h2>Programme & schedule health</h2><button data-overview-nav="ps1">Open schedules & map</button></div>${ps?.summary ? `<div class="panel-body"><p>${esc(ps.source)} · ${ps.summary.contracts} contracts · ${ps.summary.activities} activities</p><p class="hint">${esc(ps.summary.horizon_start)} · ${ps.summary.horizon_weeks} weeks. Each scenario uses its own objective; scores are not a single ranking.</p></div><div class="table-scroll"><table><thead><tr><th>Scenario</th><th>Completion</th><th>Rule issues</th><th>Late contracts</th><th>Extra access / ECLO</th><th></th></tr></thead><tbody>${results.map(([key, r]) => `<tr><td><strong>${key} · ${esc(planOptions[key].short)}</strong></td><td>${r.report.complete_activities}/${r.report.total_activities}</td><td>${badge(r.report.feasible ? 'Checks passed' : r.report.hard_violations.length + ' issues', r.report.feasible ? 'neutral' : 'amber')}</td><td>${r.report.soft_scores.contracts_overrunning ?? '—'}</td><td>${r.report.soft_scores.excess_access_nights_total ?? '—'} / ${r.report.soft_scores.eclo_nights_total ?? '—'}</td><td><button data-overview-scenario="${key}">Review plan</button></td></tr>`).join('') || '<tr><td colspan="6">A planner has not built any plans yet.</td></tr>'}</tbody></table></div>` : '<div class="panel-body"><p>No programme yet. A planner needs to import the programme before plans can be reviewed or work assigned.</p></div>'}</section><section class="panel section-gap"><div class="panel-head"><h2>${supervisor ? 'Recent emergency requests' : 'Upcoming assignments'}</h2></div><div class="panel-body">${
+        supervisor
+          ? data.decisions
+              .slice(0, 5)
+              .map(
+                (x) =>
+                  `<div class="listline"><strong>${esc(x.title)}</strong> ${badge(x.stale ? 'Schedule changed' : x.status, x.status === 'pending' ? 'amber' : 'neutral')}<p>${esc(x.planner)} · Scenario ${x.scenario}</p></div>`,
+              )
+              .join('') ||
+            '<p class="muted">No emergency requests. All plans remain available above for routine oversight.</p>'
+          : active
+              .filter((x) => x.date >= today)
+              .sort((a, b) => a.date.localeCompare(b.date))
+              .slice(0, 8)
+              .map(
+                (x) =>
+                  `<div class="listline"><strong>${esc(x.worker_name)}</strong> · ${esc(x.date)}<p>${esc(x.activity_id)} · ${esc(x.title)}${x.stale ? ' · Needs reconfirmation' : ''}</p></div>`,
+              )
+              .join('') ||
+            '<p class="muted">No upcoming assignments. Open Worker issues & assignments to allocate work from a saved schedule.</p>'
+      }</div></section>`;
+    document.querySelectorAll('[data-overview-nav]').forEach(
+      (b) =>
+        (b.onclick = () => {
+          page = b.dataset.overviewNav;
+          render();
+        }),
+    );
+    document.querySelectorAll('[data-overview-scenario]').forEach(
+      (b) =>
+        (b.onclick = () => {
+          psScenario = b.dataset.overviewScenario;
+          page = 'ps1';
+          render();
+        }),
+    );
+  } catch (error) {
+    if (user?.id === owner && page === 'overview')
+      $('content').innerHTML = `<div class="alert">${esc(error.message)}</div>`;
+  }
+}
 const teamDate = () =>
   new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Singapore',
@@ -16,16 +114,24 @@ function renderRoleWorkspace() {
       ? [['team', 'My work']]
       : role === 'manager'
         ? [
+            ['overview', 'Operations overview'],
             ['team', 'Worker issues & assignments'],
+            ['ps1', 'Schedules & map'],
+            ['contracts', 'Contract requirements'],
             ['accounts', 'Team accounts'],
           ]
         : [
+            ['overview', 'Supervisor overview'],
+            ['ps1', 'Schedules & map'],
+            ['contracts', 'Contracts'],
+            ['team', 'Team oversight'],
             ['decisions', 'Emergency decisions'],
+            ['activity', 'Workspace history'],
             ['accounts', 'Team accounts'],
           ];
   if (!nav.some((x) => x[0] === page)) page = nav[0][0];
   $('app').innerHTML =
-    `<div class="shell"><aside class="sidebar"><div>${workspaceBrand()}<div class="workspace-label">${roleLabel(role)} workspace</div></div><nav aria-label="Workspace">${nav.map(([id, title]) => `<button data-role-nav="${id}" class="${page === id ? 'active' : ''}">${uiIcon(id === 'accounts' ? 'teams' : 'calendar')}${title}</button>`).join('')}</nav><div class="sidebar-foot"><strong>${esc(user.name)}</strong><p>${roleLabel(role)}</p><button id="role-logout">Sign out</button></div></aside><main class="main"><div class="page-topline">Trackwork / ${roleLabel(role)}<button id="role-mobile-logout" class="quiet">Sign out</button></div><header><div><h1>${nav.find((x) => x[0] === page)[1]}</h1><p class="muted">${role === 'worker' ? 'Your assignments, reports and manager decisions.' : role === 'manager' ? 'Review worker reports, record fair decisions and arrange replacement cover.' : 'Urgent planning decisions that need your response.'}</p></div><button id="role-refresh">Refresh</button></header><div id="content" class="section-gap"></div><footer class="app-footer">Trackwork · Shared planning workspace</footer></main></div>`;
+    `<div class="shell"><aside class="sidebar"><div>${workspaceBrand()}<div class="workspace-label">${roleLabel(role)} workspace</div></div><nav aria-label="Workspace">${nav.map(([id, title]) => `<button data-role-nav="${id}" class="${page === id ? 'active' : ''}">${uiIcon(id === 'accounts' ? 'teams' : 'calendar')}${title}</button>`).join('')}</nav><div class="sidebar-foot"><strong>${esc(user.name)}</strong><p>${roleLabel(role)}</p><button id="role-logout">Sign out</button></div></aside><main class="main"><div class="page-topline">Trackwork / ${roleLabel(role)}<button id="role-mobile-logout" class="quiet">Sign out</button></div><header><div><h1>${nav.find((x) => x[0] === page)[1]}</h1><p class="muted">${role === 'worker' ? 'Your assignments, reports and manager decisions.' : role === 'manager' ? 'Review worker reports, record fair decisions and arrange replacement cover.' : 'Review programme health, team operations and decisions across the workspace.'}</p></div><button id="role-refresh">Refresh</button></header><div id="content" class="section-gap"></div><footer class="app-footer">Trackwork · Shared planning workspace</footer></main></div>`;
   document.querySelectorAll('[data-role-nav]').forEach(
     (b) =>
       (b.onclick = () => {
@@ -43,8 +149,15 @@ function renderRoleWorkspace() {
         teamData = null;
         auth(false);
       });
-  if (page === 'accounts') renderTeamAccounts();
-  else renderTeam();
+  ({
+    overview: renderOverview,
+    accounts: renderTeamAccounts,
+    ps1: renderPS1,
+    contracts: renderContracts,
+    activity: renderActivity,
+    team: renderTeam,
+    decisions: renderTeam,
+  })[page]();
 }
 function renderTeamAccounts() {
   $('content').innerHTML =
@@ -69,16 +182,17 @@ async function renderTeam() {
       return;
     }
     const worker = user.role === 'worker',
-      manager = user.role === 'manager';
+      manager = user.role === 'manager',
+      oversight = user.role === 'supervisor';
     const pending = data.issues.filter((x) => x.status === 'pending').length;
     const points = data.penalties.reduce((n, x) => n + x.points, 0);
     $('content').innerHTML =
-      `<div class="feature-stats"><div><small>${worker ? 'My active tasks' : 'Active assignments'}</small><b>${data.assignments.filter((x) => x.status === 'assigned').length}</b></div><div><small>${worker ? 'Reports awaiting review' : 'Pending worker reports'}</small><b>${pending}</b></div><div><small>${worker ? 'My penalty points' : manager ? 'Reviewed penalty points' : 'Reported absences'}</small><b>${manager || worker ? points : data.availability.length}</b></div></div>
+      `<div class="feature-stats"><div><small>${worker ? 'My active tasks' : 'Active assignments'}</small><b>${data.assignments.filter((x) => x.status === 'assigned').length}</b></div><div><small>${worker ? 'Reports awaiting review' : 'Pending worker reports'}</small><b>${pending}</b></div><div><small>${worker ? 'My penalty points' : manager || oversight ? 'Reviewed penalty points' : 'Reported absences'}</small><b>${manager || worker || oversight ? points : data.availability.length}</b></div></div>
     <div class="actions section-gap">${worker ? '<button id="report-issue" class="primary">Report an issue / absence</button>' : manager ? '<button id="assign-worker" class="primary">Assign work</button><button id="team-add">Add worker</button>' : ''}</div>
-    ${worker || manager ? `<section class="panel section-gap"><div class="panel-head"><h2>${worker ? 'My reports & decisions' : 'Worker reports'}</h2></div><div class="panel-body"><p class="hint">Reporting adds no penalty automatically. Managers may assign 0–10 internal points with a reason. Points are not payroll deductions.</p>${data.issues.length ? data.issues.map((x) => `<article class="issue-card ${x.status === 'pending' ? 'pending' : ''}"><div class="between"><strong>${esc(x.worker_name)} · ${esc(x.type)} · ${esc(x.date)}</strong>${badge(x.status, x.status === 'pending' ? 'amber' : 'neutral')}</div><p class="preserve-lines">${esc(x.description)}</p>${x.status === 'reviewed' ? `<div class="review-note"><strong>${x.points} points</strong> · ${esc(x.reviewer)}<p>${esc(x.decision)}</p></div>` : manager ? `<button data-review="${x.id}">Review report</button>` : '<p class="muted">Waiting for your manager.</p>'}</article>`).join('') : '<div class="empty">No reports yet.</div>'}</div></section>` : ''}
+    ${worker || manager || oversight ? `<section class="panel section-gap"><div class="panel-head"><h2>${worker ? 'My reports & decisions' : 'Worker reports'}</h2></div><div class="panel-body"><p class="hint">Reporting adds no penalty automatically. Managers may assign 0–10 internal points with a reason. Points are not payroll deductions.</p>${data.issues.length ? data.issues.map((x) => `<article class="issue-card ${x.status === 'pending' ? 'pending' : ''}"><div class="between"><strong>${esc(x.worker_name)} · ${esc(x.type)} · ${esc(x.date)}</strong>${badge(x.status, x.status === 'pending' ? 'amber' : 'neutral')}</div><p class="preserve-lines">${esc(x.description)}</p>${x.status === 'reviewed' ? `<div class="review-note"><strong>${x.points} points</strong> · ${esc(x.reviewer)}<p>${esc(x.decision)}</p></div>` : manager ? `<button data-review="${x.id}">Review report</button>` : '<p class="muted">Waiting for your manager.</p>'}</article>`).join('') : '<div class="empty">No reports yet.</div>'}</div></section>` : ''}
     ${!worker ? `<section class="panel section-gap"><div class="panel-head"><h2>Reported absences</h2></div><div class="panel-body">${data.availability.map((x) => `<div class="listline"><strong>${esc(x.name)}</strong> · ${esc(x.date)} ${badge(x.status, 'amber')}</div>`).join('') || '<p class="muted">No reported absences.</p>'}</div></section>` : ''}
     <section class="panel section-gap"><div class="panel-head"><h2>${worker ? 'My assignments' : 'Assignments'}</h2></div><div class="panel-body">${data.assignments.length ? data.assignments.map((x) => `<article class="issue-card"><div class="between"><strong>${esc(x.title)} · ${esc(x.activity_id)}</strong>${badge(x.status, 'neutral')}</div><p>${esc(x.worker_name)} · ${esc(x.date)} · Scenario ${esc(x.scenario)}, week ${x.week}</p><p class="muted">${esc(x.location)}</p><p>${esc(x.notes)}</p>${x.stale ? '<p class="alert">The plan changed. Ask the manager to confirm and reassign this task.</p>' : ''}${x.cancel_reason ? `<p>Cancelled: ${esc(x.cancel_reason)}</p>` : ''}${x.status === 'assigned' ? `<div class="actions">${worker ? `<button data-complete="${x.id}" ${x.stale ? 'disabled' : ''}>Mark completed</button>` : manager ? `<button data-cancel-assignment="${x.id}">Cancel / arrange replacement</button>` : ''}</div>` : ''}</article>`).join('') : '<div class="empty">No assignments yet. A manager can assign a worker to a date within a scheduled week.</div>'}</div></section>
-    ${manager ? `<section class="panel section-gap"><div class="panel-head"><h2>Penalty totals</h2></div><div class="panel-body">${data.penalties.map((x) => `<div class="listline"><strong>${esc(x.name)}</strong> · ${x.points} points</div>`).join('') || '<p>No worker accounts yet.</p>'}</div></section>` : ''}`;
+    ${manager || oversight ? `<section class="panel section-gap"><div class="panel-head"><h2>Penalty totals</h2></div><div class="panel-body">${data.penalties.map((x) => `<div class="listline"><strong>${esc(x.name)}</strong> · ${x.points} points</div>`).join('') || '<p>No worker accounts yet.</p>'}</div></section>` : ''}`;
     if ($('report-issue')) $('report-issue').onclick = reportIssue;
     if ($('assign-worker')) $('assign-worker').onclick = assignWorker;
     if ($('team-add')) $('team-add').onclick = accountForm;
@@ -259,8 +373,13 @@ setInterval(async () => {
   try {
     const data = await api('/team/state');
     if (user?.id !== owner) return;
-    if (['team', 'decisions'].includes(page) && teamData && data.version !== teamData.version) {
-      await renderTeam();
+    if (
+      ['team', 'decisions', 'overview'].includes(page) &&
+      teamData &&
+      data.version !== teamData.version
+    ) {
+      if (page === 'overview') await renderOverview();
+      else await renderTeam();
       return;
     }
     const pending = data.decisions.filter((x) => x.status === 'pending' && !x.stale).length;

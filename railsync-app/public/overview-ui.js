@@ -162,6 +162,7 @@ function drawOverview(target, insight, result) {
   $('overview-disruption').onclick = disruptionForm;
   $('overview-disruption').disabled = psLoading;
   $('overview-brief').onclick = () => downloadPlanningBrief(insight, result);
+  applyPlanPermissions();
 }
 
 function planningBriefText(insight, result) {

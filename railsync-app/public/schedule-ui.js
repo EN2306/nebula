@@ -33,6 +33,7 @@ async function csvFormatGuide() {
   }
 }
 function mountScheduleTools() {
+  if (user.role !== 'scheduler') return;
   const r = psData.results[psScenario];
   if (!r) return;
   const toolbar = $('schedule-tool-slot');
@@ -101,7 +102,7 @@ function psNetwork() {
                     closure = !work && a.closures.includes(loc.location),
                     buffer = !work && !closure && a.buffers.includes(loc.location);
                   if (!work && !closure && !buffer) return '';
-                  return `<button class="map-chip ${buffer ? 'buffer-chip' : closure ? 'closure-chip' : ''}" ${work ? `draggable="true" data-drag-activity="${esc(a.id)}" data-drag-week="${week}"` : ''} data-map-activity="${esc(a.id)}" title="${esc(a.id + ' · ' + (work ? 'Work' : closure ? 'Closure' : 'Safety buffer'))}">${esc(a.id)}${buffer ? ' · Buffer' : closure ? ' · Closed' : ''}</button>`;
+                  return `<button class="map-chip ${buffer ? 'buffer-chip' : closure ? 'closure-chip' : ''}" ${work && user.role === 'scheduler' ? `draggable="true" data-drag-activity="${esc(a.id)}" data-drag-week="${week}"` : ''} data-map-activity="${esc(a.id)}" title="${esc(a.id + ' · ' + (work ? 'Work' : closure ? 'Closure' : 'Safety buffer'))}">${esc(a.id)}${buffer ? ' · Buffer' : closure ? ' · Closed' : ''}</button>`;
                 })
                 .join('');
               const outages = (r.disruptions || [])
