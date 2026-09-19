@@ -155,6 +155,12 @@ function auth(setup) {
       b.disabled = false;
     }
   };
+  if (hostInfo.ephemeral) {
+    $('auth-form').insertAdjacentHTML(
+      'afterbegin',
+      '<p class="hosting-notice">Hosted demo · Accounts and work may reset between visits. Keep exported copies of plans you need.</p>',
+    );
+  }
 }
 
 function render() {
@@ -195,6 +201,14 @@ function render() {
   };
   $('app').innerHTML =
     `<div class="shell"><aside class="sidebar"><div>${workspaceBrand()}<div class="workspace-label">Track access planning</div></div><div><div class="nav-group">Workspace</div><nav aria-label="Workspace">${nav.map(([id, icon, title]) => `<button data-nav="${id}" ${id === page ? 'aria-current="page"' : ''} class="${id === page ? 'active' : ''}"><span class="icon">${uiIcon(icon)}</span>${title}</button>`).join('')}</nav></div><div class="sidebar-foot"><div class="userline"><span class="avatar">${esc(user.name.slice(0, 1))}</span><div>${esc(user.name)}<small>${planner ? 'Planner' : 'Existing account'}</small></div></div><button class="quiet" id="logout">Sign out</button></div></aside><main class="main"><div class="page-topline"><span>Trackwork / ${planner ? titles[page] : 'Access'}</span><span class="local-status">${hostInfo.hosted ? 'Hosted team workspace' : 'Local workspace'}</span></div><header><div><h1>${planner ? titles[page] : 'Planner access required'}</h1><p class="muted header-note">${planner ? descriptions[page] : 'This account belongs to the previous crew workflow. Sign in with a planner account to use track planning.'}</p></div><div class="actions">${planner ? (page === 'ps1' ? `<button id="planner-help" class="quiet">${uiIcon('help')}How to use this</button>` : `<button id="refresh">${uiIcon('refresh')}Refresh</button>`) : ''}<button id="mobile-logout" class="quiet">Sign out</button></div></header><div id="content" class="section-gap"></div><footer class="app-footer"><span>Trackwork · Track access planning</span><span>Planning prototype · Review before operational use</span></footer></main></div>`;
+  if (hostInfo.ephemeral) {
+    document
+      .querySelector('.main header')
+      .insertAdjacentHTML(
+        'afterend',
+        '<p class="hosting-notice">Hosted demo · This workspace uses temporary storage. Export plans you want to keep.</p>',
+      );
+  }
   document.querySelectorAll('[data-nav]').forEach(
     (b) =>
       (b.onclick = () => {

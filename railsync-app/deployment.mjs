@@ -19,7 +19,9 @@ export function deploymentConfig(origin = '') {
 }
 
 export function requestOrigin(host, config) {
-  if (config.host && host === config.host) return config.origin;
+  for (const allowed of [config, ...(config.alternatives || [])]) {
+    if (allowed.host && host === allowed.host) return allowed.origin;
+  }
   if (/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(host)) return 'http://' + host;
   return null;
 }

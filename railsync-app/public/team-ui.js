@@ -4,7 +4,8 @@ const roleLabel = (r) =>
 let teamData = null;
 function applyPlanPermissions() {
   if (user.role === 'scheduler') return;
-  for (const id of ['ps-upload', 'ps-sample', 'ps-all']) if ($(id)) $(id).hidden = true;
+  for (const id of ['ps-upload', 'ps-sample', 'ps-all', 'overview-build', 'overview-disruption'])
+    if ($(id)) $(id).hidden = true;
   document.querySelectorAll('[data-build-plan]').forEach((b) => {
     b.hidden = true;
     b.disabled = true;

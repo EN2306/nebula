@@ -1,0 +1,13 @@
+.git/
+.local/
+.vercel/
+node_modules/
+**/data/
+**/*.sqlite*
+.env
+.env.*
+submissions/
+railsync-app/tests/
+scripts/browser-smoke.mjs
+problem-statement/PS1/02_references/
+problem-statement/PS1/03_submission_sample/

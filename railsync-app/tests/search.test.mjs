@@ -78,3 +78,46 @@ test('risk insights produce actionable handover and negotiation evidence', () =>
   assert(Array.isArray(insight.negotiation));
   assert(insight.note.includes('official validation'));
 });
+
+test('overview retains every risk, flags incomplete work and counts weekly activity bookings', () => {
+  const dataset = loadDataset(benchmarkCases()[0].files);
+  const result = solve(dataset, 'A');
+  const insight = buildInsights(dataset, result);
+  assert.equal(insight.deadline_watch.length, dataset.activities.length);
+  assert.equal(
+    insight.weeks.reduce((sum, week) => sum + week.bookings, 0),
+    result.access.length,
+  );
+  assert.equal(
+    insight.weeks.reduce((sum, week) => sum + week.finishing, 0),
+    dataset.activities.length,
+  );
+  for (const row of insight.deadline_watch) {
+    const activity = dataset.am.get(row.activity_id);
+    assert.equal(
+      row.slack_days,
+      activity.project.deadline - (dataset.start + row.finish_week * 7 - 1),
+    );
+  }
+  // More than 20 late jobs must all contribute to contractor totals.
+  for (const activity of dataset.activities) activity.project.deadline = dataset.start - 1;
+  const late = buildInsights(dataset, result);
+  assert(late.priority_risks.length > 20);
+  assert.equal(
+    late.contractor_risks.reduce((sum, contract) => sum + contract.delayed_activities, 0),
+    dataset.activities.length,
+  );
+  const missingId = dataset.activities[0].activity_id;
+  const partial = {
+    ...result,
+    access: result.access.filter((row) => row.activity_id !== missingId),
+  };
+  const risk = buildInsights(dataset, partial).deadline_watch.find(
+    (row) => row.activity_id === missingId,
+  );
+  assert.equal(risk.status, 'incomplete');
+  assert.equal(risk.finish_week, null);
+  assert.equal(risk.slack_days, null);
+  assert.equal(risk.delay_days, null);
+  assert.equal(risk.remaining_work, dataset.am.get(missingId).work);
+});

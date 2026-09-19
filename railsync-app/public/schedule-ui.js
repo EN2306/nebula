@@ -36,11 +36,17 @@ function mountScheduleTools() {
   if (user.role !== 'scheduler') return;
   const r = psData.results[psScenario];
   if (!r) return;
-  const toolbar = document.querySelector('.planner-toolbar');
+  const toolbar = $('schedule-tool-slot');
   toolbar.insertAdjacentHTML(
-    'afterend',
-    `<div class="actions section-gap" id="schedule-tools"><button id="disruption-backup">What-if disruption / backup plan</button><button id="manual-move">Move booking</button><button id="undo-schedule">Undo saved edit</button><button id="schedule-emergency" class="danger-button">Emergency → Supervisor</button></div>${r.disruptions?.length ? `<div class="schedule-help"><strong>Active disruption windows</strong>${r.disruptions.map((x) => `<p>${esc(x.type)} · ${esc(x.location)} · weeks ${x.start_week}–${x.end_week}</p>`).join('')}</div>` : ''}`,
+    'beforeend',
+    '<div id="schedule-tools"><button id="disruption-backup">Preview disruption / backup plan</button><button id="manual-move">Move booking</button><button id="undo-schedule">Undo saved edit</button><button id="schedule-emergency" class="danger-button">Emergency → Supervisor</button></div>',
   );
+  $('active-disruptions').innerHTML = r.disruptions?.length
+    ? `<div class="schedule-help active-disruptions"><strong>Active disruption windows</strong>${r.disruptions.map((x) => `<p>${esc(x.type)} · ${esc(x.location)} · weeks ${x.start_week}–${x.end_week}</p>`).join('')}</div>`
+    : '';
+  document.querySelector('.toolbox-menu').addEventListener('click', (event) => {
+    if (event.target.closest('button')) document.querySelector('.planner-toolbox').open = false;
+  });
   $('disruption-backup').onclick = disruptionForm;
   $('manual-move').onclick = () => moveForm();
   $('schedule-emergency').onclick = () => emergencyForm();
