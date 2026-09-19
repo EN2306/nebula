@@ -331,8 +331,13 @@ export function createApp({
         if (u.role !== 'scheduler') fail(403, 'This action requires a planner account.');
       };
       if (route.startsWith('/api/ps1/')) {
-        if (!(req.method === 'GET' && route === '/api/ps1/state' && u.role === 'supervisor'))
-          scheduler();
+        const planningReader =
+          ['supervisor', 'manager'].includes(u.role) &&
+          req.method === 'GET' &&
+          ['/api/ps1/state', '/api/ps1/insights', '/api/ps1/export'].includes(route);
+        const supervisorPreview =
+          u.role === 'supervisor' && req.method === 'POST' && route === '/api/ps1/what-if';
+        if (!planningReader && !supervisorPreview) scheduler();
         const edited = await edits(route, req.method, b, u);
         if (edited) {
           send(200, edited);

@@ -261,3 +261,14 @@
   font-weight: 600;
   min-width: 40px;
 }
+.overview-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.map-chip:not([draggable]) {
+  cursor: pointer;
+}
+[hidden] {
+  display: none !important;
+}

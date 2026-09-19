@@ -4,14 +4,14 @@
 
 The database role `scheduler` is displayed as **Planner**. Existing planner accounts keep their access. Existing retired roles are not automatically promoted.
 
-| Role       | Workflow                                                                                                                                                      |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Planner    | Import programme, build plans, move bookings, preview disruptions, save validated alternatives, undo edits, send emergency decisions, view team availability. |
-| Supervisor | Receive urgent in-app decisions, inspect the submitted schedule context, approve, reject or request changes with a reason.                                    |
-| Manager    | Create worker accounts, assign dated work within scheduled weeks, cancel/reassign tasks, review private worker reports and assign internal penalty points.    |
-| Worker     | View own assignments, mark confirmed tasks complete, report absence/safety/equipment issues, see own manager decisions and accumulated points.                |
+| Role       | Workflow                                                                                                                                                                 |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Planner    | Import programme, build plans, move bookings, preview disruptions, save validated alternatives, undo edits, send emergency decisions, view team availability.            |
+| Supervisor | Oversee programme health, inspect schedules/maps/contracts/risks, preview capacity, export plans, view team reports and history, manage accounts and decide emergencies. |
+| Manager    | View operations status and saved schedules/maps/contracts/risks, create workers, assign dated work, arrange replacement cover, review worker reports and assign points.  |
+| Worker     | View own assignments, mark confirmed tasks complete, report absence/safety/equipment issues, see own manager decisions and accumulated points.                           |
 
-Planners and supervisors can create all four account roles from Settings / Team accounts. Managers can create workers only. Personal absence explanations and penalty details are visible only to the reporting worker and managers. Planner availability views contain dates and worker names, not private explanations.
+Planners and supervisors can create all four account roles from Settings / Team accounts. Managers can create workers only. Personal absence explanations and penalty details are visible to the reporting worker, managers and supervisors. Planner availability views contain dates and worker names, not private explanations. Supervisors and managers have read-only planning access enforced by the server. Supervisor capacity previews do not modify saved schedules. Planners edit schedules; managers record worker reviews; supervisors make final emergency decisions.
 
 ## Schedule map and edits
 

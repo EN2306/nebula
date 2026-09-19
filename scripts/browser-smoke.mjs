@@ -189,6 +189,19 @@ try {
     mobile: false,
   });
   await signIn('manager');
+  assert(
+    await evaluate(
+      "document.querySelector('#content').innerText.includes('Programme & schedule health')",
+    ),
+  );
+  await evaluate("document.querySelector('[data-role-nav=ps1]').click()");
+  await until("!!document.querySelector('#readonly-plan-context')");
+  assert(
+    await evaluate(
+      "document.querySelector('#ps-all').hidden && document.querySelector('#ps-upload').hidden && document.querySelector('#ps-what-if').hidden",
+    ),
+  );
+  await evaluate("document.querySelector('[data-role-nav=team]').click()");
   await until("!!document.querySelector('[data-review]')");
   await evaluate(
     "document.querySelector('[data-review]').click();document.querySelector('#review-points').value='1';document.querySelector('#review-reason').value='Reviewed by manager';document.querySelector('#review-form button').click()",
@@ -207,6 +220,31 @@ try {
   );
   await until("document.querySelector('#content')?.innerText.includes('Power outage')");
   await signIn('supervisor');
+  assert(
+    await evaluate(
+      "document.querySelector('#content').innerText.includes('Programme & schedule health')",
+    ),
+  );
+  screenshot = await send('Page.captureScreenshot', { format: 'png' });
+  writeFileSync(path.join(root, 'supervisor-overview.png'), Buffer.from(screenshot.data, 'base64'));
+  await evaluate("document.querySelector('[data-role-nav=ps1]').click()");
+  await until("!!document.querySelector('#readonly-plan-context')");
+  assert(
+    await evaluate(
+      "document.querySelector('#ps-all').hidden && !!document.querySelector('#ps-insights') && !!document.querySelector('#ps-export')",
+    ),
+  );
+  await evaluate("psTab='network';paintPS1()");
+  assert.equal(await evaluate("document.querySelectorAll('[data-drag-activity]').length"), 0);
+  await evaluate("document.querySelector('#ps-insights').click()");
+  await until("document.querySelector('#modal').open");
+  assert(await evaluate("document.querySelector('#modal').innerText.includes('Priority risks')"));
+  await evaluate(
+    "document.querySelector('#modal').close();document.querySelector('[data-role-nav=team]').click()",
+  );
+  await until("document.querySelector('#content')?.innerText.includes('Reviewed by manager')");
+  assert.equal(await evaluate("document.querySelectorAll('[data-review]').length"), 0);
+  await evaluate("document.querySelector('[data-role-nav=decisions]').click()");
   await until("!!document.querySelector('[data-decide]')");
   screenshot = await send('Page.captureScreenshot', { format: 'png' });
   writeFileSync(path.join(root, 'supervisor-desktop.png'), Buffer.from(screenshot.data, 'base64'));

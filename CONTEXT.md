@@ -39,6 +39,8 @@ The app reads `.env` when started with `node --env-file=.env railsync-app/server
 
 ## Update log
 
+- 2026-09-19: Expanded supervisor workspace with programme overview, all saved schedules/maps/contracts/risks/exports, team reports and penalties, workspace history and emergency decisions. Managers now have an operations overview and read-only schedule access. Planner editing workflow remains unchanged. Role permissions verified in API and browser tests.
+
 - 2026-09-19: Delivered and deployed four-role workflows, private worker reports, manager-reviewed internal penalty points, dated assignments, urgent supervisor decisions, draggable schedule map with spatial buffers, preview/save/undo and time-bounded disruption recovery. Preserved old databases and accounts, rebuilt validated plans, and verified the existing planner login on port 3001. See `docs/TEAM-WORKFLOWS.md` for usage and modelling limits.
 
 - 2026-09-19: Reset local runtime data and recreated the planner account.

@@ -112,6 +112,7 @@ async function boot() {
       const m = await api('/me');
       csrf = m.csrf;
       user = m.user;
+      if (['supervisor', 'manager'].includes(user.role)) page = 'overview';
       await refresh();
     } catch (e) {
       if (e.status === 401) auth(false);
@@ -147,7 +148,7 @@ function auth(setup) {
       const result = await api(setup ? '/setup' : '/login', formData(e.target));
       csrf = result.csrf;
       user = result.user;
-      page = 'ps1';
+      page = ['supervisor', 'manager'].includes(user.role) ? 'overview' : 'ps1';
       await refresh();
     } catch (err) {
       $('auth-error').textContent = err.message;

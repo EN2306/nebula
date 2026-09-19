@@ -87,7 +87,13 @@ test('four roles enforce permissions, private worker reports, manager-reviewed p
   const post = async (c, route, b, status = 200) =>
     c('/team/' + route, { ...b, version: (await c('/team/state')).version }, status);
   await worker('/ps1/state', undefined, 403);
-  await manager('/ps1/state', undefined, 403);
+  await manager('/ps1/state');
+  await supervisor('/ps1/state');
+  for (const reader of [manager, supervisor]) {
+    await reader('/ps1/import', { version: 0, sample: true }, 403);
+    await reader('/ps1/solve', { version: 0, scenario: 'A' }, 403);
+    await reader('/ps1/move', { scenario: 'A' }, 403);
+  }
   await post(
     worker,
     'issues',
@@ -98,7 +104,8 @@ test('four roles enforce permissions, private worker reports, manager-reviewed p
   assert.equal(w.penalties[0].points, 0);
   assert.equal(w.issues.length, 1);
   assert.equal((await planner('/team/state')).issues.length, 0);
-  assert(!JSON.stringify(await supervisor('/team/state')).includes('Private reason'));
+  assert(JSON.stringify(await supervisor('/team/state')).includes('Private reason'));
+  assert(!JSON.stringify(await planner('/team/state')).includes('Private reason'));
   await post(planner, 'review', { id: w.issues[0].id, points: 4, decision: 'No' }, 403);
   await post(
     manager,
@@ -124,6 +131,12 @@ test('four roles enforce permissions, private worker reports, manager-reviewed p
   );
   const imported = await planner('/ps1/import', { version: 0, sample: true });
   await planner('/ps1/solve', { version: imported.version, scenario: 'A' });
+  for (const reader of [manager, supervisor]) {
+    const view = await reader('/ps1/state');
+    assert.equal(view.summary.activities, 54);
+    await reader('/ps1/insights?scenario=A');
+    assert.equal((await reader('/ps1/export?scenario=A&file=VALIDATION.json')).feasible, true);
+  }
   const decision = await post(planner, 'escalate', {
     title: 'Power emergency',
     question: 'Approve alternative?',

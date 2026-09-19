@@ -49,7 +49,9 @@ export function operations(db, psGet, describePlan, auditEvent) {
       d.dataset_version === ps.version && d.fingerprint === planFingerprint(ps.results[d.scenario]);
     if (route === '/api/team/state' && method === 'GET') {
       const people = users();
-      const issues = s.issues.filter((x) => u.role === 'manager' || x.worker_id === u.id);
+      const issues = s.issues.filter(
+        (x) => ['manager', 'supervisor'].includes(u.role) || x.worker_id === u.id,
+      );
       const assignments = s.assignments
         .filter((x) => u.role !== 'worker' || x.worker_id === u.id)
         .map((x) => ({
@@ -70,7 +72,11 @@ export function operations(db, psGet, describePlan, auditEvent) {
             : [],
           people: u.role === 'worker' ? people.filter((x) => x.id === u.id) : people,
           penalties: people
-            .filter((x) => x.role === 'worker' && (u.role === 'manager' || x.id === u.id))
+            .filter(
+              (x) =>
+                x.role === 'worker' &&
+                (['manager', 'supervisor'].includes(u.role) || x.id === u.id),
+            )
             .map((x) => ({
               worker_id: x.id,
               name: x.name,
@@ -80,7 +86,7 @@ export function operations(db, psGet, describePlan, auditEvent) {
             })),
           programme: u.role === 'worker' ? null : describePlan(ps),
           // Planners receive availability only, never private absence explanations or penalty details.
-          availability: ['manager', 'scheduler'].includes(u.role)
+          availability: ['manager', 'scheduler', 'supervisor'].includes(u.role)
             ? s.issues
                 .filter((x) => x.type === 'absence' && x.status !== 'withdrawn')
                 .map((x) => ({
