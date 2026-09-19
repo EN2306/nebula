@@ -1,0 +1,19 @@
+FROM node:24-bookworm-slim
+
+WORKDIR /app
+
+# Vercel routes HTTP traffic to port 80 unless the project overrides PORT.
+# Persistent application data must be supplied by an external service: Vercel
+# container functions have no durable filesystem or Docker volume support.
+ENV NODE_ENV=production \
+    HOST=0.0.0.0 \
+    PORT=80 \
+    RAILSYNC_DB=/tmp/railsync.sqlite
+
+COPY --chown=node:node railsync-app/ ./railsync-app/
+COPY --chown=node:node problem-statement/PS1/01_data/ ./problem-statement/PS1/01_data/
+
+USER node
+EXPOSE 80
+
+CMD ["node", "railsync-app/server.mjs"]

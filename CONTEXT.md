@@ -67,3 +67,9 @@ The app reads `.env` when started with `node --env-file=.env railsync-app/server
 - 2026-09-19: After maintainer access was confirmed, promoted `45a160a` from `codex/sync-role-workspaces` to GitLab `main`. GitHub and GitLab `main` now point to the same verified project history.
 - 2026-09-19: Added public Docker-demo role accounts behind `RAILSYNC_DEMO_ACCOUNTS=true` and documented the four explicit account credentials in the root README. Rebuilt Docker, verified a healthy container and all four logins. Added time-bounded temporary location quotas to disruption recovery; the validator enforces those quotas in every scenario, the UI supports them, and the preview test passes. Activity evidence now identifies relevant predecessor and capacity-pressure observations without claiming sole causation. Updated stale GitLab submission status and test-count documentation.
 - 2026-09-19: Deployed `adfc0b3` to Vercel production as `dpl_Abkoe2AmCgFMkYqz3qgxRnArhjJi`, aliased to `https://nebula-trackwork.vercel.app`. Vercel serves the serverless demo only; the Docker container remains the durable host with the documented role-demo accounts. Public Vercel demo-account provisioning was intentionally left disabled.
+
+## 2026-09-19 — Vercel container deployment
+
+- Added `Dockerfile.vercel` and Vercel Services routing so Vercel can build and run the same Node application as an OCI container function.
+- The Vercel image listens on port 80 and writes only to `/tmp`. This is intentional: Vercel container functions are stateless and cannot mount the local Docker named volume. Durable user accounts, sessions, and plans require a future external database migration.
+- Local Docker remains the persistent demonstration host through the `nebula_trackwork-data` named volume and `Dockerfile`.
