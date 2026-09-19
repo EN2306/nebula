@@ -14,7 +14,7 @@ test('search reports public gaps with reproducible schedules regardless of input
       b = solve(reversed, scenario);
     assert(a.report.feasible);
     assert(a.report.quality.gap >= 0);
-    assert(a.report.soft_scores.objective_score <= { A: 32.2, B: 30, C: 29.1 }[scenario]);
+    assert(a.report.soft_scores.objective_score <= { A: 32.2, B: 30, C: 26.1 }[scenario]);
     assert.deepEqual(a.access, b.access);
     assert.deepEqual(a.occupancy, b.occupancy);
     for (const explanation of a.explanations) assert(explanation.evidence.length >= 2);

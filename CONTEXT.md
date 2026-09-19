@@ -82,3 +82,7 @@ The app reads `.env` when started with `node --env-file=.env railsync-app/server
 Fixed cross-group weekly closure conflicts and expanded Live interchange buffers on the other line. Regenerated submissions/public and submissions/validator ZIPs. Internal scores are now A 32.2, B 30, C 29.1, all 54/54 complete. Earlier lower-score optimality claims are superseded; official validator re-upload remains necessary.
 
 Optimization follow-up: tried 64 deterministic diversified priority orderings on the public dataset. No improvement over A 32.2, B 30, C 29.1; removed the extra search to avoid latency without benefit. B reaches the internal relaxed lower bound; A/C global optimality remains unproven. Submission narrative must acknowledge official closure feedback and the shared-checker limitation.
+
+## Improved Scenario C submission
+
+Expanded ECLO-window exploration from 4 to 20 candidate weeks per line (up to 400 pairs) on datasets with at most 100 activities. C improved from 29.1 to 26.1; A remains 32.2 and B 30. Tried 40 weeks per line and reserved bottleneck passes with no further improvement; retained the cheaper useful search. Remaining relaxed-bound gaps: A 7, B 0, C 0.9. This does not prove global optimality or official acceptance.

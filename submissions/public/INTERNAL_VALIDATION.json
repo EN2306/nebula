@@ -1175,7 +1175,7 @@
       "candidates": 5,
       "repair_checks": 18,
       "improvements": 0,
-      "elapsed_ms": 150
+      "elapsed_ms": 157
     }
   },
   "B": {
@@ -2349,7 +2349,7 @@
       "candidates": 10,
       "repair_checks": 0,
       "improvements": 0,
-      "elapsed_ms": 105
+      "elapsed_ms": 115
     }
   },
   "C": {
@@ -2359,12 +2359,12 @@
     "complete_activities": 54,
     "total_activities": 54,
     "soft_scores": {
-      "objective_score": 29.1,
-      "priority_weighted_score": 9.1,
-      "overrun_days_total": 7,
-      "contracts_overrunning": 1,
+      "objective_score": 26.1,
+      "priority_weighted_score": 16.1,
+      "overrun_days_total": 14,
+      "contracts_overrunning": 2,
       "excess_access_nights_total": 0,
-      "eclo_nights_total": 4
+      "eclo_nights_total": 2
     },
     "detail": {
       "capacity_hotspots": [
@@ -2748,13 +2748,6 @@
         },
         {
           "week": 8,
-          "location": "PLAT:BET:H02:WB",
-          "used": 1,
-          "capacity": 1,
-          "excess": 0
-        },
-        {
-          "week": 8,
           "location": "PLAT:BET:H01:WB",
           "used": 1,
           "capacity": 1,
@@ -2768,6 +2761,13 @@
           "excess": 0
         },
         {
+          "week": 8,
+          "location": "PLAT:BET:H02:WB",
+          "used": 1,
+          "capacity": 1,
+          "excess": 0
+        },
+        {
           "week": 9,
           "location": "PLAT:ALP:H01:EB",
           "used": 1,
@@ -3097,6 +3097,13 @@
           "excess": 0
         },
         {
+          "week": 16,
+          "location": "PLAT:ALP:H01:EB",
+          "used": 1,
+          "capacity": 1,
+          "excess": 0
+        },
+        {
           "week": 17,
           "location": "PLAT:BET:H01:EB",
           "used": 1,
@@ -3224,13 +3231,6 @@
         },
         {
           "week": 19,
-          "location": "PLAT:ALP:H01:EB",
-          "used": 1,
-          "capacity": 1,
-          "excess": 0
-        },
-        {
-          "week": 19,
           "location": "PLAT:ALP:H02:WB",
           "used": 1,
           "capacity": 1,
@@ -3238,42 +3238,42 @@
         },
         {
           "week": 20,
-          "location": "PLAT:ALP:H01:EB",
-          "used": 1,
-          "capacity": 1,
-          "excess": 0
-        },
-        {
-          "week": 20,
-          "location": "SEC:ALP:H01_H02:EB",
-          "used": 1,
-          "capacity": 1,
-          "excess": 0
-        },
-        {
-          "week": 20,
-          "location": "PLAT:ALP:H02:EB",
-          "used": 1,
-          "capacity": 1,
-          "excess": 0
-        },
-        {
-          "week": 21,
           "location": "PLAT:BET:H01:EB",
           "used": 1,
           "capacity": 1,
           "excess": 0
         },
         {
-          "week": 21,
+          "week": 20,
           "location": "SEC:BET:H01_H02:EB",
           "used": 1,
           "capacity": 1,
           "excess": 0
         },
         {
-          "week": 21,
+          "week": 20,
           "location": "PLAT:BET:H02:EB",
+          "used": 1,
+          "capacity": 1,
+          "excess": 0
+        },
+        {
+          "week": 21,
+          "location": "PLAT:ALP:H01:EB",
+          "used": 1,
+          "capacity": 1,
+          "excess": 0
+        },
+        {
+          "week": 21,
+          "location": "SEC:ALP:H01_H02:EB",
+          "used": 1,
+          "capacity": 1,
+          "excess": 0
+        },
+        {
+          "week": 21,
+          "location": "PLAT:ALP:H02:EB",
           "used": 1,
           "capacity": 1,
           "excess": 0
@@ -3412,30 +3412,26 @@
           "excess": 0
         }
       ],
-      "nights_scheduled": 190,
+      "nights_scheduled": 191,
       "eclo_windows": {
-        "ALP": [
-          14,
-          15
-        ],
         "BET": [
           22,
           23
         ]
       },
-      "last_week": 28
+      "last_week": 29
     },
     "results": [
       {
         "scenario": "C",
         "contract_number": "C001",
-        "simulated_completion_date": "2027-06-06",
+        "simulated_completion_date": "2027-06-13",
         "overrun_days": 0
       },
       {
         "scenario": "C",
         "contract_number": "C002",
-        "simulated_completion_date": "2027-06-27",
+        "simulated_completion_date": "2027-07-04",
         "overrun_days": 0
       },
       {
@@ -3447,7 +3443,7 @@
       {
         "scenario": "C",
         "contract_number": "C004",
-        "simulated_completion_date": "2027-07-11",
+        "simulated_completion_date": "2027-07-25",
         "overrun_days": 0
       },
       {
@@ -3483,8 +3479,8 @@
       {
         "scenario": "C",
         "contract_number": "C010",
-        "simulated_completion_date": "2027-05-16",
-        "overrun_days": 0
+        "simulated_completion_date": "2027-05-23",
+        "overrun_days": 7
       },
       {
         "scenario": "C",
@@ -3495,13 +3491,13 @@
       {
         "scenario": "C",
         "contract_number": "C012",
-        "simulated_completion_date": "2027-06-13",
+        "simulated_completion_date": "2027-06-20",
         "overrun_days": 0
       },
       {
         "scenario": "C",
         "contract_number": "C013",
-        "simulated_completion_date": "2027-05-23",
+        "simulated_completion_date": "2027-05-30",
         "overrun_days": 0
       },
       {
@@ -3514,7 +3510,7 @@
     "note": "Independent RailSync checks, not the judges’ validator. Heuristic results are not a proof of optimality. Possession labels are synchronized across each activity’s span; local contract access_night indices are separate. Predecessors finish in an earlier week. Live closures and exclusion envelopes are checked internally; occupancy CSV lists the work span, as in the supplied example.",
     "quality": {
       "lower_bound": 25.2,
-      "gap": 3.9,
+      "gap": 0.9,
       "note": "Lower bound under the app’s weekly model, relaxing capacity, sharing, workfront limits and shared ECLO windows. Not official validation.",
       "unavoidable_costs": [
         {
@@ -3526,11 +3522,11 @@
           "minimum_penalty": 7
         }
       ],
-      "baseline_score": 29.1,
-      "candidates": 42,
+      "baseline_score": 26.1,
+      "candidates": 810,
       "repair_checks": 6,
       "improvements": 0,
-      "elapsed_ms": 342
+      "elapsed_ms": 4064
     }
   }
 }

@@ -921,7 +921,7 @@ export function solve(d, scenario) {
           line: line.line_code,
           weeks: [...weights]
             .sort((a, b) => b[1] - a[1] || a[0] - b[0])
-            .slice(0, 4)
+            .slice(0, d.activities.length <= 100 ? 20 : 4)
             .map((x) => x[0]),
         };
       });
@@ -935,7 +935,7 @@ export function solve(d, scenario) {
               [choice.line]: week,
             })),
           )
-          .slice(0, 16);
+          .slice(0, d.activities.length <= 100 ? 400 : 16);
       for (const window of windows)
         for (const mode of [3, 5]) variants.push(attempt(d, scenario, mode, window));
     }

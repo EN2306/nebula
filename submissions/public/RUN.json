@@ -1,7 +1,7 @@
 {
-  "run_id": "2026-09-19T08-10-10-764Z-ba4b97ca-2abd-41ef-8e60-51a1ab827c0e",
+  "run_id": "2026-09-19T08-13-50-641Z-08c787b7-ec49-4131-bd12-f9a802b5dfa1",
   "status": "complete",
-  "started_at": "2026-09-19T08:10:10.765Z",
+  "started_at": "2026-09-19T08:13:50.642Z",
   "input_sha256": {
     "01_LINES.csv": "69d47e99de632c08f09229b34d2642af74dba4b7a6b8870e41f853cae9793eaa",
     "02_STATIONS.csv": "9f9f44b6c2500a26cea9b3fa2c77ba957079ab5a01fd92d7c4d0be11296340d8",
@@ -23,9 +23,9 @@
     },
     "C": {
       "feasible": true,
-      "score": 29.1
+      "score": 26.1
     }
   },
   "official_validation": false,
-  "finished_at": "2026-09-19T08:10:11.412Z"
+  "finished_at": "2026-09-19T08:13:55.029Z"
 }
