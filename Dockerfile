@@ -1,5 +1,7 @@
 FROM node:24-bookworm-slim
 WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=3001 RAILSYNC_DB=/app/data/railsync.sqlite
 COPY --chown=node:node railsync-app/ ./railsync-app/
 COPY --chown=node:node problem-statement/PS1/01_data/ ./problem-statement/PS1/01_data/

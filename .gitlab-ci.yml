@@ -17,6 +17,13 @@ format_and_reference:
 
 unit_and_integration_tests:
   stage: test
+  services:
+    - name: postgres:17-alpine
+      alias: postgres
+  variables:
+    POSTGRES_PASSWORD: isolated-test-only
+    POSTGRES_DB: trackwork_test
+    TRACKWORK_TEST_DATABASE_URL: postgresql://postgres:isolated-test-only@postgres:5432/trackwork_test
   script:
     - npm test
 

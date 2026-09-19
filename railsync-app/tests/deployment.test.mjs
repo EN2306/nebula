@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createApp } from '../server.mjs';
-import { deploymentConfig } from '../deployment.mjs';
+import { deploymentConfig, hostingOptions } from '../deployment.mjs';
 import http from 'node:http';
 import { once } from 'node:events';
 
 test('public deployment validates hosts/origins, protects setup and uses secure sessions', async (t) => {
-  const app = createApp({
+  const app = await createApp({
     dbPath: ':memory:',
     publicOrigin: 'https://judge.example',
     setupToken: 'test-setup-token',
@@ -48,8 +48,41 @@ test('public deployment validates hosts/origins, protects setup and uses secure 
     assert.throws(() => deploymentConfig(origin), /HTTPS origin/);
 });
 
+test('Docker entrypoint trusts exact Vercel aliases and reports shared storage', async (t) => {
+  const options = hostingOptions({
+    VERCEL: '1',
+    VERCEL_PROJECT_PRODUCTION_URL: 'trackwork.vercel.app',
+    VERCEL_URL: 'trackwork-build.vercel.app',
+    SUPABASE_DB_URL: 'configured',
+  });
+  assert.equal(options.ephemeral, false);
+  const app = await createApp({ ...options, dbPath: ':memory:' });
+  await new Promise((resolve) => app.server.listen(0, '127.0.0.1', resolve));
+  t.after(() => app.close());
+  for (const host of [
+    'trackwork.vercel.app',
+    'trackwork-build.vercel.app',
+    'attacker.vercel.app',
+  ]) {
+    const status = await new Promise((resolve, reject) => {
+      const request = http.get(
+        `http://127.0.0.1:${app.server.address().port}/api/health`,
+        {
+          headers: { host },
+        },
+        (response) => {
+          response.resume();
+          response.on('end', () => resolve(response.statusCode));
+        },
+      );
+      request.on('error', reject);
+    });
+    assert.equal(status, host.startsWith('attacker') ? 403 : 200);
+  }
+});
+
 test('serverless adapter handles parsed bodies, sessions, exact aliases and worker assets without listening', async (t) => {
-  const app = createApp({
+  const app = await createApp({
     dbPath: ':memory:',
     publicOrigin: 'https://trackwork.vercel.app',
     additionalOrigins: ['https://trackwork-build.vercel.app'],

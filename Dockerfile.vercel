@@ -1,6 +1,8 @@
 FROM node:24-bookworm-slim
 
 WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
 
 # Vercel routes HTTP traffic to port 80 unless the project overrides PORT.
 # Persistent application data must be supplied by an external service: Vercel

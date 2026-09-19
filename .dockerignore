@@ -8,3 +8,6 @@ railsync-app/tests/
 !problem-statement/PS1/01_data/
 !problem-statement/PS1/01_data/**
 !Dockerfile
+!Dockerfile.vercel
+!package.json
+!package-lock.json

@@ -1,6 +1,6 @@
 {
   "node": "v24.13.0",
-  "generated_at": "2026-09-18T17:08:44.772Z",
+  "generated_at": "2026-09-19T06:12:19.041Z",
   "note": "Synthetic stress cases, not hidden judge instances. Infeasible cases remain explicit.",
   "records": [
     {
@@ -13,7 +13,7 @@
       "score": 25.2,
       "lower_bound": 25.2,
       "gap": 0,
-      "elapsed_ms": 73
+      "elapsed_ms": 142
     },
     {
       "instance": "public",
@@ -37,7 +37,7 @@
       "score": 25.2,
       "lower_bound": 25.2,
       "gap": 0,
-      "elapsed_ms": 104
+      "elapsed_ms": 118
     },
     {
       "instance": "reduced-supply",
@@ -49,7 +49,7 @@
       "score": 25.2,
       "lower_bound": 25.2,
       "gap": 0,
-      "elapsed_ms": 33
+      "elapsed_ms": 56
     },
     {
       "instance": "reduced-supply",
@@ -61,7 +61,7 @@
       "score": 30,
       "lower_bound": 30,
       "gap": 0,
-      "elapsed_ms": 402
+      "elapsed_ms": 666
     },
     {
       "instance": "reduced-supply",
@@ -73,7 +73,7 @@
       "score": 25.2,
       "lower_bound": 25.2,
       "gap": 0,
-      "elapsed_ms": 81
+      "elapsed_ms": 124
     },
     {
       "instance": "single-workfront",
@@ -85,7 +85,7 @@
       "score": 1736,
       "lower_bound": 25.2,
       "gap": 1710.8,
-      "elapsed_ms": 237
+      "elapsed_ms": 274
     },
     {
       "instance": "single-workfront",
@@ -97,7 +97,7 @@
       "score": null,
       "lower_bound": 30,
       "gap": null,
-      "elapsed_ms": 96
+      "elapsed_ms": 89
     },
     {
       "instance": "single-workfront",
@@ -109,7 +109,7 @@
       "score": 1026,
       "lower_bound": 25.2,
       "gap": 1000.8,
-      "elapsed_ms": 749
+      "elapsed_ms": 928
     },
     {
       "instance": "cross-contract-chain",
@@ -121,7 +121,7 @@
       "score": 3925.6,
       "lower_bound": 3925.6,
       "gap": 0,
-      "elapsed_ms": 49
+      "elapsed_ms": 73
     },
     {
       "instance": "cross-contract-chain",
@@ -133,7 +133,7 @@
       "score": null,
       "lower_bound": null,
       "gap": null,
-      "elapsed_ms": 95
+      "elapsed_ms": 124
     },
     {
       "instance": "cross-contract-chain",
@@ -145,7 +145,7 @@
       "score": 3925.6,
       "lower_bound": 3188.2,
       "gap": 737.4,
-      "elapsed_ms": 515
+      "elapsed_ms": 558
     },
     {
       "instance": "zero-supply",
@@ -157,7 +157,7 @@
       "score": null,
       "lower_bound": 25.2,
       "gap": null,
-      "elapsed_ms": 73
+      "elapsed_ms": 108
     },
     {
       "instance": "zero-supply",
@@ -169,7 +169,7 @@
       "score": 3917,
       "lower_bound": 30,
       "gap": 3887,
-      "elapsed_ms": 4893
+      "elapsed_ms": 6085
     },
     {
       "instance": "zero-supply",
@@ -181,7 +181,7 @@
       "score": 4964.1,
       "lower_bound": 25.2,
       "gap": 4938.9,
-      "elapsed_ms": 1701
+      "elapsed_ms": 3510
     },
     {
       "instance": "tight-deadlines",
@@ -193,7 +193,7 @@
       "score": 34883.1,
       "lower_bound": 34869.1,
       "gap": 14,
-      "elapsed_ms": 511
+      "elapsed_ms": 817
     },
     {
       "instance": "tight-deadlines",
@@ -205,7 +205,7 @@
       "score": null,
       "lower_bound": null,
       "gap": null,
-      "elapsed_ms": 60
+      "elapsed_ms": 156
     },
     {
       "instance": "tight-deadlines",
@@ -217,7 +217,7 @@
       "score": 32102,
       "lower_bound": 30555.7,
       "gap": 1546.3,
-      "elapsed_ms": 727
+      "elapsed_ms": 1188
     },
     {
       "instance": "reversed-input",
@@ -229,7 +229,7 @@
       "score": 25.2,
       "lower_bound": 25.2,
       "gap": 0,
-      "elapsed_ms": 30
+      "elapsed_ms": 73
     },
     {
       "instance": "reversed-input",
@@ -241,7 +241,7 @@
       "score": 30,
       "lower_bound": 30,
       "gap": 0,
-      "elapsed_ms": 184
+      "elapsed_ms": 362
     },
     {
       "instance": "reversed-input",
@@ -253,7 +253,7 @@
       "score": 25.2,
       "lower_bound": 25.2,
       "gap": 0,
-      "elapsed_ms": 55
+      "elapsed_ms": 146
     },
     {
       "instance": "250-activities",
@@ -265,7 +265,7 @@
       "score": 0,
       "lower_bound": 0,
       "gap": 0,
-      "elapsed_ms": 806
+      "elapsed_ms": 1525
     },
     {
       "instance": "250-activities",
@@ -277,7 +277,7 @@
       "score": 0,
       "lower_bound": 0,
       "gap": 0,
-      "elapsed_ms": 1159
+      "elapsed_ms": 1739
     },
     {
       "instance": "250-activities",
@@ -289,7 +289,7 @@
       "score": 0,
       "lower_bound": 0,
       "gap": 0,
-      "elapsed_ms": 1571
+      "elapsed_ms": 1834
     }
   ]
 }

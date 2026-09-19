@@ -7,13 +7,13 @@ import { runSolver } from './worker-runner.mjs';
 const fail = (status, message) => {
   throw Object.assign(Error(message), { status });
 };
-export function scheduleRoutes({ psGet, psSave, psView, auditAction, isBusy, setBusy }) {
-  const previews = new Map();
-  const store = (u, snapshot, scenario, result, kind) => {
-    for (const [id, p] of previews) if (p.expires < Date.now()) previews.delete(id);
-    if (previews.size >= 100) fail(429, 'Too many previews. Try again in a few minutes.');
+export function scheduleRoutes({ db, psGet, psSave, psView, auditAction, isBusy, setBusy }) {
+  const store = async (u, snapshot, scenario, result, kind) => {
+    await db.prepare('DELETE FROM schedule_previews WHERE expires<?').run(Date.now());
+    const count = await db.prepare('SELECT COUNT(*) AS count FROM schedule_previews').get();
+    if (Number(count.count) >= 100) fail(429, 'Too many previews. Try again in a few minutes.');
     const id = randomUUID();
-    previews.set(id, {
+    const preview = {
       user: u.id,
       version: snapshot.version,
       fingerprint: planFingerprint(snapshot.results[scenario]),
@@ -21,7 +21,10 @@ export function scheduleRoutes({ psGet, psSave, psView, auditAction, isBusy, set
       result,
       kind,
       expires: Date.now() + 15 * 60000,
-    });
+    };
+    await db
+      .prepare('INSERT INTO schedule_previews VALUES(?,?,?)')
+      .run(id, JSON.stringify(preview), preview.expires);
     return id;
   };
   return async function (route, method, b, u) {
@@ -34,9 +37,13 @@ export function scheduleRoutes({ psGet, psSave, psView, auditAction, isBusy, set
     if (method !== 'POST') fail(405, 'Use POST for this action.');
     if (u.role !== 'scheduler') fail(403, 'Planner access required.');
     if (isBusy()) fail(409, 'Wait for planning to finish.');
-    const snapshot = psGet();
+    const snapshot = await psGet();
     if (route === '/api/ps1/apply-preview') {
-      const p = previews.get(b.id);
+      const row =
+        typeof b.id === 'string'
+          ? await db.prepare('SELECT body FROM schedule_previews WHERE id=?').get(b.id)
+          : null;
+      const p = row ? JSON.parse(row.body) : null;
       if (!p || p.user !== u.id || p.expires < Date.now())
         fail(410, 'Preview expired. Create a new preview.');
       if (
@@ -55,9 +62,9 @@ export function scheduleRoutes({ psGet, psSave, psView, auditAction, isBusy, set
         .concat([{ scenario: p.scenario, result: snapshot.results[p.scenario] }])
         .slice(-10);
       snapshot.results[p.scenario] = p.result;
-      psSave(snapshot);
-      previews.delete(b.id);
-      auditAction(u, p.kind, `Scenario ${p.scenario}`);
+      await psSave(snapshot);
+      await db.prepare('DELETE FROM schedule_previews WHERE id=?').run(b.id);
+      await auditAction(u, p.kind, `Scenario ${p.scenario}`);
       return psView(snapshot);
     }
     if (!['A', 'B', 'C'].includes(b.scenario)) fail(400, 'Choose scenario A, B or C.');
@@ -69,14 +76,14 @@ export function scheduleRoutes({ psGet, psSave, psView, auditAction, isBusy, set
       const index = (snapshot.history || []).findLastIndex((x) => x.scenario === b.scenario);
       if (index < 0) fail(404, 'No saved edit to undo for this scenario.');
       snapshot.results[b.scenario] = snapshot.history.splice(index, 1)[0].result;
-      psSave(snapshot);
-      auditAction(u, 'Schedule edit undone', `Scenario ${b.scenario}`);
+      await psSave(snapshot);
+      await auditAction(u, 'Schedule edit undone', `Scenario ${b.scenario}`);
       return psView(snapshot);
     }
     if (route === '/api/ps1/move') {
       const result = moveBooking(snapshot.files, baseline, b.activity_id, b.from_week, b.to_week);
       return {
-        id: store(u, snapshot, b.scenario, result, 'Manual booking move'),
+        id: await store(u, snapshot, b.scenario, result, 'Manual booking move'),
         result,
         comparison: comparePlans(baseline, result),
       };
@@ -101,14 +108,14 @@ export function scheduleRoutes({ psGet, psSave, psView, auditAction, isBusy, set
     setBusy(true);
     try {
       const result = await runSolver(snapshot.files, b.scenario, { disruptions, freeze });
-      const latest = psGet();
+      const latest = await psGet();
       if (
         latest.version !== snapshot.version ||
         planFingerprint(latest.results[b.scenario]) !== planFingerprint(baseline)
       )
         fail(409, 'The plan changed during preview. Try again.');
       return {
-        id: store(u, snapshot, b.scenario, result, 'Disruption backup adopted'),
+        id: await store(u, snapshot, b.scenario, result, 'Disruption backup adopted'),
         result,
         outage,
         comparison: comparePlans(baseline, result),

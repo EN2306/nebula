@@ -145,7 +145,7 @@ test('bad datasets are rejected before they replace saved work', () => {
 test('HTTP: authenticated import/solve/export, CSRF/role restrictions, stale import and SQLite persistence', async (t) => {
   const dir = mkdtempSync(path.join(tmpdir(), 'ps1-test-')),
     dbPath = path.join(dir, 'test.sqlite'),
-    app = createApp({ dbPath });
+    app = await createApp({ dbPath });
   await new Promise((r) => app.server.listen(0, '127.0.0.1', r));
   t.after(async () => {
     await app.close();
@@ -200,7 +200,7 @@ test('HTTP: authenticated import/solve/export, CSRF/role restrictions, stale imp
   assert.equal(parseCSV(output).rows.length, solved.access.length);
   const check = await req('/ps1/export?scenario=B&file=VALIDATION.json');
   assert(check.feasible);
-  const second = createApp({ dbPath });
+  const second = await createApp({ dbPath });
   assert(
     JSON.parse(second.db.prepare('SELECT body FROM ps1_workspace').get().body).results.B.report
       .feasible,

@@ -4,7 +4,7 @@ A local railway track access planner for NebulaX Problem Statement 1. It imports
 
 ## Run
 
-Requires Node.js 24 or later. Scheduling has no runtime npm dependencies.
+Requires Node.js 24 or later. Run `npm ci` in the repository root first to install the server dependencies.
 
 ```powershell
 cd railsync-app
@@ -47,6 +47,6 @@ Run `npm test` for workload/rule checks, import/export persistence, authenticati
 
 The scheduling engine uses deterministic search passes and validated repair. Public plans reach a mathematical lower bound under the app's model, but hidden-instance global optimality and official validation are not established. See [planner details](../docs/PLANNER.md) and [measured improvements](../docs/IMPROVEMENTS.md).
 
-This app defaults to localhost. [Deployment instructions](../docs/DEPLOYMENT.md) cover HTTPS origins, setup tokens, persistent storage, Docker and the disposable Vercel demo. Planner accounts share one programme.
+This app defaults to localhost. [Deployment instructions](../docs/DEPLOYMENT.md) cover HTTPS origins, setup tokens, Docker, and Vercel with Supabase Postgres. Planner accounts share one programme.
 
 Reference: https://github.com/aochinwen/NebulaX-Hackathon-ProblemStatement

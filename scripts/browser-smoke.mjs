@@ -12,7 +12,7 @@ const profile = mkdtempSync(path.join(root, 'profile-'));
 const browserBin =
   process.env.BROWSER_BIN || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 if (!existsSync(browserBin)) throw Error('Set BROWSER_BIN to a Chromium-based browser executable');
-const app = createApp({ dbPath: ':memory:', publicOrigin: '', setupToken: '' });
+const app = await createApp({ dbPath: ':memory:', publicOrigin: '', setupToken: '' });
 await new Promise((resolve) => app.server.listen(0, '127.0.0.1', resolve));
 const browser = spawn(
   browserBin,

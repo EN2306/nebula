@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createApp } from '../server.mjs';
 import { callAI } from '../ai.mjs';
 async function fixture(t, options = {}) {
-  const app = createApp({ dbPath: ':memory:', ...options });
+  const app = await createApp({ dbPath: ':memory:', ...options });
   await new Promise((r) => app.server.listen(0, '127.0.0.1', r));
   const url = `http://127.0.0.1:${app.server.address().port}`;
   t.after(() => app.close());

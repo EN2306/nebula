@@ -20,7 +20,7 @@ const files = () =>
     ]),
   );
 async function fixture(t) {
-  const app = createApp({ dbPath: ':memory:' });
+  const app = await createApp({ dbPath: ':memory:' });
   await new Promise((r) => app.server.listen(0, '127.0.0.1', r));
   t.after(() => app.close());
   const base = 'http://127.0.0.1:' + app.server.address().port;

@@ -23,32 +23,31 @@ const date = (v) => {
   return v;
 };
 
-export function operations(db, psGet, describePlan, auditEvent) {
-  db.exec(
+export async function operations(db, psGet, describePlan, auditEvent) {
+  await db.exec(
     'CREATE TABLE IF NOT EXISTS team_operations(id INTEGER PRIMARY KEY CHECK(id=1),body TEXT NOT NULL)',
   );
-  db.prepare('INSERT OR IGNORE INTO team_operations VALUES(1,?)').run(
-    JSON.stringify({ version: 0, issues: [], assignments: [], decisions: [] }),
-  );
-  const get = () =>
-    JSON.parse(db.prepare('SELECT body FROM team_operations WHERE id=1').get().body);
-  const users = () =>
-    db
-      .prepare('SELECT id,name,email,role FROM users')
-      .all()
-      .filter((u) => ROLES.includes(u.role));
-  return function handle(route, method, b, u) {
+  await db
+    .prepare('INSERT OR IGNORE INTO team_operations VALUES(1,?)')
+    .run(JSON.stringify({ version: 0, issues: [], assignments: [], decisions: [] }));
+  const get = async () =>
+    JSON.parse((await db.prepare('SELECT body FROM team_operations WHERE id=1').get()).body);
+  const users = async () =>
+    (await db.prepare('SELECT id,name,email,role FROM users').all()).filter((u) =>
+      ROLES.includes(u.role),
+    );
+  return async function handle(route, method, b, u) {
     if (!route.startsWith('/api/team/')) return null;
     if (!ROLES.includes(u.role)) fail(403, 'This account has no team access.');
-    const s = get(),
-      ps = psGet();
+    const s = await get(),
+      ps = await psGet();
     const requireRole = (...roles) => {
       if (!roles.includes(u.role)) fail(403, 'Your role cannot perform this action.');
     };
     const activeDecision = (d) =>
       d.dataset_version === ps.version && d.fingerprint === planFingerprint(ps.results[d.scenario]);
     if (route === '/api/team/state' && method === 'GET') {
-      const people = users();
+      const people = await users();
       const issues = s.issues.filter(
         (x) => ['manager', 'supervisor'].includes(u.role) || x.worker_id === u.id,
       );
@@ -172,7 +171,7 @@ export function operations(db, psGet, describePlan, auditEvent) {
       detail = `${data.worker_name}: manager review recorded`;
     } else if (route === '/api/team/assign') {
       requireRole('manager');
-      const worker = users().find((x) => x.id === b.worker_id && x.role === 'worker');
+      const worker = (await users()).find((x) => x.id === b.worker_id && x.role === 'worker');
       const programme = describePlan(ps),
         plan = ps.results[b.scenario];
       const job = programme?.summary?.jobs.find((x) => x.id === b.activity_id);
@@ -283,16 +282,16 @@ export function operations(db, psGet, describePlan, auditEvent) {
       detail = `${data.title}: ${b.status}`;
     } else fail(404, 'Unknown team action.');
     // Single synchronous transaction: prevent duplicate reviews and preserve history.
-    db.exec('BEGIN IMMEDIATE');
+    await db.exec('BEGIN IMMEDIATE');
     try {
-      if (get().version !== s.version)
+      if ((await get()).version !== s.version)
         fail(409, 'The team workspace changed. Refresh and try again.');
       s.version++;
-      db.prepare('UPDATE team_operations SET body=? WHERE id=1').run(JSON.stringify(s));
-      auditEvent(u, action, detail);
-      db.exec('COMMIT');
+      await db.prepare('UPDATE team_operations SET body=? WHERE id=1').run(JSON.stringify(s));
+      await auditEvent(u, action, detail);
+      await db.exec('COMMIT');
     } catch (error) {
-      db.exec('ROLLBACK');
+      await db.exec('ROLLBACK');
       throw error;
     }
     return { status: 200, data: { ...data, version: s.version } };
