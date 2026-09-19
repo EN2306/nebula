@@ -1,7 +1,7 @@
 {
-  "run_id": "2026-09-19T08-06-51-041Z-7e9352d8-971d-4c0e-ab68-f1c6c27d3228",
+  "run_id": "2026-09-19T08-10-10-764Z-ba4b97ca-2abd-41ef-8e60-51a1ab827c0e",
   "status": "complete",
-  "started_at": "2026-09-19T08:06:51.043Z",
+  "started_at": "2026-09-19T08:10:10.765Z",
   "input_sha256": {
     "01_LINES.csv": "69d47e99de632c08f09229b34d2642af74dba4b7a6b8870e41f853cae9793eaa",
     "02_STATIONS.csv": "9f9f44b6c2500a26cea9b3fa2c77ba957079ab5a01fd92d7c4d0be11296340d8",
@@ -27,5 +27,5 @@
     }
   },
   "official_validation": false,
-  "finished_at": "2026-09-19T08:06:51.738Z"
+  "finished_at": "2026-09-19T08:10:11.412Z"
 }

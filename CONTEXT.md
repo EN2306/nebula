@@ -80,3 +80,5 @@ The app reads `.env` when started with `node --env-file=.env railsync-app/server
 ## Closure validation correction
 
 Fixed cross-group weekly closure conflicts and expanded Live interchange buffers on the other line. Regenerated submissions/public and submissions/validator ZIPs. Internal scores are now A 32.2, B 30, C 29.1, all 54/54 complete. Earlier lower-score optimality claims are superseded; official validator re-upload remains necessary.
+
+Optimization follow-up: tried 64 deterministic diversified priority orderings on the public dataset. No improvement over A 32.2, B 30, C 29.1; removed the extra search to avoid latency without benefit. B reaches the internal relaxed lower bound; A/C global optimality remains unproven. Submission narrative must acknowledge official closure feedback and the shared-checker limitation.
