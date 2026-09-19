@@ -99,8 +99,20 @@ test('scenario policy checks detect capacity strain, planned overrun, illegal sh
   const fresh = dataset(),
     occ = structuredClone(r.occupancy);
   for (const x of occ) x.co_share_group = 'one';
-  report = validatePlan(fresh, 'A', r.access, occ);
+  // Force the reported incompatible PC pair into the same week. Merely
+  // relabelling the now separated schedule is no longer an invalid fixture.
+  const forced = structuredClone(r.access);
+  const targetWeek = forced.find((x) => x.activity_id === 'A025').week;
+  const oldWeek = forced.find((x) => x.activity_id === 'A028').week;
+  forced.find((x) => x.activity_id === 'A028').week = targetWeek;
+  for (const x of occ) if (x.activity_id === 'A028' && x.week === oldWeek) x.week = targetWeek;
+  report = validatePlan(fresh, 'A', forced, occ);
   assert(report.hard_violations.some((x) => ['legal_mix', 'closure'].includes(x.rule)));
+  for (const x of occ) x.co_share_group = x.activity_id;
+  report = validatePlan(fresh, 'A', forced, occ);
+  assert(report.hard_violations.some((x) => x.rule === 'closure'));
+  assert(fresh.am.get('A074').geometry.envelope.includes('PLAT:BET:S13:WB'));
+  assert(fresh.am.get('A074').geometry.envelope.includes('PLAT:BET:S16:EB'));
   const moved = structuredClone(r.access),
     a = fresh.activities.find((a) => a.predecessor_activity_id);
   moved.find((x) => x.activity_id === a.activity_id).week = 1;

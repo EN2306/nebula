@@ -357,7 +357,12 @@ export function expand(d, a) {
       const h2 = route.findIndex((s) => s.station_id === 'H02');
       if (h1 < 0 || h2 < 0) continue;
       for (const b of ['EB', 'WB'])
-        for (const id of span(l.line_code, b, Math.max(0, Math.min(h1, h2) - rule.size), Math.min(route.length - 1, Math.max(h1, h2) + rule.size)))
+        for (const id of span(
+          l.line_code,
+          b,
+          Math.max(0, Math.min(h1, h2) - rule.size),
+          Math.min(route.length - 1, Math.max(h1, h2) + rule.size),
+        ))
           envelope.add(id);
     }
   }
@@ -583,7 +588,11 @@ export function validatePlan(d, scenario, access, occupancy) {
           b = d.am.get(rows[j].activity_id),
           ga = occ.get(a.activity_id + '|' + week)?.[0]?.co_share_group,
           gb = occ.get(b.activity_id + '|' + week)?.[0]?.co_share_group;
-        if (ga && gb && (collision(a, b) || (ga !== gb && intersects(a.geometry.envelope, b.geometry.envelope))))
+        if (
+          ga &&
+          gb &&
+          (collision(a, b) || (ga !== gb && intersects(a.geometry.envelope, b.geometry.envelope)))
+        )
           add(
             'closure',
             `Week ${week}, ${ga}: ${a.activity_id} and ${b.activity_id} have overlapping exclusion envelopes`,
@@ -792,7 +801,14 @@ function attempt(d, scenario, mode, windowSeed = null) {
       for (let g = 0; g <= slots.length; g++) {
         const peers = slots[g] || [];
         if (peers.some((b) => collision(a, b))) continue;
-        if (slots.some((others, index) => index !== g && others.some((b) => intersects(a.geometry.envelope, b.geometry.envelope)))) continue;
+        if (
+          slots.some(
+            (others, index) =>
+              index !== g &&
+              others.some((b) => intersects(a.geometry.envelope, b.geometry.envelope)),
+          )
+        )
+          continue;
         let extra = 0,
           valid = true;
         for (const location of a.geometry.occupied) {

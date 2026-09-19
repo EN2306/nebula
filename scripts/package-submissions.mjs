@@ -7,7 +7,11 @@ for (const scenario of ['A', 'B', 'C']) {
   const source = join('submissions', 'public', scenario);
   const target = join('submissions', 'validator');
   mkdirSync(target, { recursive: true });
-  const contents = Object.fromEntries(files.map((file) => [file, readFileSync(join(source, file), 'utf8')]));
+  const contents = Object.fromEntries(
+    files.map((file) => [file, readFileSync(join(source, file), 'utf8')]),
+  );
   writeFileSync(join(target, `${scenario}.zip`), submissionZip(contents));
 }
-console.log('Created submissions/validator/A.zip, B.zip and C.zip with exactly three CSV entries each.');
+console.log(
+  'Created submissions/validator/A.zip, B.zip and C.zip with exactly three CSV entries each.',
+);

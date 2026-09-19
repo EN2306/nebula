@@ -76,3 +76,7 @@ The app reads `.env` when started with `node --env-file=.env railsync-app/server
 - Production container deployment: `dpl_9d5nMAceJXBPNETT79HkVpvkFsZr`, available at `https://nebula-trackwork.vercel.app` (deployed from commit `1a77794`).
 - 2026-09-19: Fixed the Vercel container's hostname rejection, added a private Supabase Postgres adapter with TLS certificate verification, transaction/advisory-lock concurrency, durable schedule previews, and exact Vercel alias trust. Provisioned four hosted role accounts and feasible 54/54 A/B/C schedules in Supabase. Production health now reports `storage: supabase` and `ephemeral: false`; hosted smoke verified all roles, role boundaries, logout, exports, assets and private-file exclusions.
 - 2026-09-19: Checked Google Cloud parity. No `gcloud` executable, authenticated Google account, selected GCP project, or Cloud Run URL is present in this workspace, so no Google Cloud deployment was changed. Added Cloud Run parity instructions using the same `Dockerfile.vercel`, Supabase secret, health check and hosted smoke verifier.
+
+## Closure validation correction
+
+Fixed cross-group weekly closure conflicts and expanded Live interchange buffers on the other line. Regenerated submissions/public and submissions/validator ZIPs. Internal scores are now A 32.2, B 30, C 29.1, all 54/54 complete. Earlier lower-score optimality claims are superseded; official validator re-upload remains necessary.
