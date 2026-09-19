@@ -11,6 +11,7 @@ import {
   exportsFor,
   validatePlan,
 } from './ps1.mjs';
+import { submissionZip } from './submission-zip.mjs';
 import { openDatabase } from './database.mjs';
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual, createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -587,7 +588,13 @@ async function initializeApp(
             choice(scenario, ['A', 'B', 'C'], 'scenario');
             choice(
               filename,
-              ['SCHEDULE_ACCESS.csv', 'SCHEDULE_OCCUPANCY.csv', 'RESULTS.csv', 'VALIDATION.json'],
+              [
+                'SCHEDULE_ACCESS.csv',
+                'SCHEDULE_OCCUPANCY.csv',
+                'RESULTS.csv',
+                'VALIDATION.json',
+                'SUBMISSION.zip',
+              ],
               'file',
             );
             const s = await psGet(),
@@ -604,16 +611,29 @@ async function initializeApp(
                 422,
                 'This candidate has hard violations. Download its validation report and resolve the input or planning constraints before exporting a submission.',
               );
-            res.setHeader(
-              'Content-Type',
-              filename.endsWith('.csv') ? 'text/csv; charset=utf-8' : 'application/json',
-            );
-            res.setHeader('Content-Disposition', 'attachment; filename="' + filename + '"');
-            res.end(
-              filename === 'VALIDATION.json'
-                ? JSON.stringify(report, null, 2)
-                : exportsFor({ ...result, report })[filename],
-            );
+            const exported = exportsFor({ ...result, report });
+            if (filename === 'SUBMISSION.zip') {
+              res.setHeader('Content-Type', 'application/zip');
+              res.setHeader('Content-Disposition', 'attachment; filename="SUBMISSION.zip"');
+              res.end(
+                submissionZip({
+                  'SCHEDULE_ACCESS.csv': exported['SCHEDULE_ACCESS.csv'],
+                  'SCHEDULE_OCCUPANCY.csv': exported['SCHEDULE_OCCUPANCY.csv'],
+                  'RESULTS.csv': exported['RESULTS.csv'],
+                }),
+              );
+            } else {
+              res.setHeader(
+                'Content-Type',
+                filename.endsWith('.csv') ? 'text/csv; charset=utf-8' : 'application/json',
+              );
+              res.setHeader('Content-Disposition', 'attachment; filename="' + filename + '"');
+              res.end(
+                filename === 'VALIDATION.json'
+                  ? JSON.stringify(report, null, 2)
+                  : exported[filename],
+              );
+            }
             return;
           }
           fail(404, 'Unknown planner action');

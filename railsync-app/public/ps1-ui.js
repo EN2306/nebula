@@ -656,6 +656,7 @@ function psExportDialog() {
     'Export plan',
     `<p><strong>${planOptions[psScenario].name}</strong> · Scenario ${psScenario}</p>${feasible ? `<p>${r.report.complete_activities} jobs fully scheduled. Download the three CSV files for this plan.</p>` : '<div class="alert">This plan still has rule issues. The check report is available; submission files are blocked until the plan passes.</div>'}<div class="export-list">${(feasible
       ? [
+          ['SUBMISSION.zip', 'Validator ZIP', 'Exactly the three required CSV files'],
           ['SCHEDULE_ACCESS.csv', 'Access schedule', 'Jobs, weeks and allocated nights'],
           ['SCHEDULE_OCCUPANCY.csv', 'Track bookings', 'Work locations and shared access groups'],
           ['RESULTS.csv', 'Completion summary', 'Contract finish dates and delays'],
