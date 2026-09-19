@@ -54,6 +54,10 @@ Before publishing the URL, use a clean browser to import all eight CSVs, solve A
 
 The Docker image was built and smoke-tested locally for non-root execution, import/solve/export and SQLite persistence across application reopen. The GitLab pipeline verifies formatting, references, tests, results and benchmarks. It does not deploy or publish automatically. No live judging URL has been provisioned by this repository change.
 
+## GitLab CI
+
+The checked-in [`.gitlab-ci.yml`](../.gitlab-ci.yml) uses Node 24 and runs for pushes and merge requests. It verifies formatting and official-source checksums, runs the full application test suite, then produces schedule and benchmark artifacts. It does not contain credentials and does not deploy. Add a GitLab remote and push `main` to activate it for a GitLab project.
+
 ## Vercel demo deployment
 
 The repository includes a Vercel serverless entrypoint and rewrite in `api/index.mjs` and `vercel.json`. Import the repository into Vercel with the project root unchanged, then set these environment variables for Preview and Production:

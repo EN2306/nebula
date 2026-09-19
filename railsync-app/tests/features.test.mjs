@@ -174,6 +174,14 @@ test('worker assignments reject reported absence and completion is restricted to
     date: day,
     notes: 'Check in first',
   });
+  const plannerView = await planner('/team/state'),
+    managerView = await manager('/team/state'),
+    supervisorView = await supervisor('/team/state');
+  assert.equal(plannerView.assignments[0].notes, undefined);
+  assert.equal(managerView.assignments[0].notes, 'Check in first');
+  assert.deepEqual(supervisorView.assignments, []);
+  assert.deepEqual(supervisorView.people, []);
+  assert.equal(supervisorView.programme, null);
   await post(supervisor, 'complete-assignment', { id: task.id }, 403);
   await post(worker, 'complete-assignment', { id: task.id });
   assert.equal((await worker('/team/state')).assignments[0].status, 'completed');

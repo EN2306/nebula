@@ -51,14 +51,22 @@ export function operations(db, psGet, describePlan, auditEvent) {
       const people = users();
       const issues = s.issues.filter((x) => u.role === 'manager' || x.worker_id === u.id);
       const assignments = s.assignments
-        .filter((x) => u.role !== 'worker' || x.worker_id === u.id)
-        .map((x) => ({
-          ...x,
-          stale:
-            x.status === 'assigned' &&
-            (x.dataset_version !== ps.version ||
-              x.fingerprint !== planFingerprint(ps.results[x.scenario])),
-        }));
+        .filter(
+          (x) =>
+            u.role === 'manager' ||
+            u.role === 'scheduler' ||
+            (u.role === 'worker' && x.worker_id === u.id),
+        )
+        .map((x) => {
+          const { notes, ...coordination } = x;
+          return {
+            ...(u.role === 'scheduler' ? coordination : x),
+            stale:
+              x.status === 'assigned' &&
+              (x.dataset_version !== ps.version ||
+                x.fingerprint !== planFingerprint(ps.results[x.scenario])),
+          };
+        });
       return {
         status: 200,
         data: {
@@ -68,7 +76,12 @@ export function operations(db, psGet, describePlan, auditEvent) {
           decisions: ['scheduler', 'supervisor'].includes(u.role)
             ? s.decisions.map((d) => ({ ...d, stale: !activeDecision(d) }))
             : [],
-          people: u.role === 'worker' ? people.filter((x) => x.id === u.id) : people,
+          people:
+            u.role === 'manager'
+              ? people
+              : u.role === 'worker'
+                ? people.filter((x) => x.id === u.id)
+                : [],
           penalties: people
             .filter((x) => x.role === 'worker' && (u.role === 'manager' || x.id === u.id))
             .map((x) => ({
@@ -78,7 +91,7 @@ export function operations(db, psGet, describePlan, auditEvent) {
                 .filter((i) => i.worker_id === x.id && i.status === 'reviewed')
                 .reduce((n, i) => n + i.points, 0),
             })),
-          programme: u.role === 'worker' ? null : describePlan(ps),
+          programme: ['scheduler', 'manager'].includes(u.role) ? describePlan(ps) : null,
           // Planners receive availability only, never private absence explanations or penalty details.
           availability: ['manager', 'scheduler'].includes(u.role)
             ? s.issues
