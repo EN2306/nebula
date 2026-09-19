@@ -221,6 +221,18 @@ test('disruption backup freezes earlier bookings, blocks buffers and survives ap
     start_week: 3,
     end_week: 4,
   };
+  const quotaRow = baseline.occupancy[0];
+  const quotaPreview = await planner('/ps1/disruption', {
+    ...b,
+    type: 'capacity',
+    scope: 'location',
+    location: quotaRow.location_id,
+    start_week: quotaRow.week,
+    end_week: quotaRow.week,
+    capacity: 0,
+  });
+  assert.equal(quotaPreview.outage.capacity, 0);
+  assert.equal(quotaPreview.outage.locations[0], quotaRow.location_id);
   const p = await planner('/ps1/disruption', b);
   assert(p.result.report.feasible);
   assert(!p.result.access.some((x) => x.week >= 3 && x.week <= 4));
@@ -273,6 +285,22 @@ test('disruption backup freezes earlier bookings, blocks buffers and survives ap
   assert(
     validatePlan(d, 'A', baseline.access, baseline.occupancy).hard_violations.some(
       (x) => x.rule === 'disruption' && x.detail.includes(job.activity_id),
+    ),
+  );
+  const booked = baseline.occupancy[0];
+  d.disruptions = [
+    validateDisruption(d, {
+      type: 'capacity',
+      scope: 'location',
+      location: booked.location_id,
+      start_week: booked.week,
+      end_week: booked.week,
+      capacity: 0,
+    }),
+  ];
+  assert(
+    validatePlan(d, 'B', baseline.access, baseline.occupancy).hard_violations.some(
+      (x) => x.rule === 'capacity' && x.detail.includes('temporary quota'),
     ),
   );
 });

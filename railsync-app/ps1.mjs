@@ -373,6 +373,22 @@ function compatible(a, b) {
 function collision(a, b) {
   return intersects(a.geometry.envelope, b.geometry.envelope) && !compatible(a, b);
 }
+function capacityReduction(d, location, week) {
+  return (d.disruptions || []).filter(
+    (event) =>
+      Number.isInteger(event.capacity) &&
+      week >= event.start_week &&
+      week <= event.end_week &&
+      event.locations.includes(location),
+  );
+}
+function capacityAt(d, location, week) {
+  const nominal = d.loc.get(location)?.capacity ?? 0;
+  return capacityReduction(d, location, week).reduce(
+    (capacity, event) => Math.min(capacity, event.capacity),
+    nominal,
+  );
+}
 const endDay = (d, w) => d.start + w * 7 - 1;
 const dateString = (n) => new Date(n * 86400000).toISOString().slice(0, 10);
 export const SUMMARY_NOTE =
@@ -436,6 +452,7 @@ export function validatePlan(d, scenario, access, occupancy) {
     const a = d.am.get(r.activity_id);
     for (const outage of d.disruptions || [])
       if (
+        !Number.isInteger(outage.capacity) &&
         r.week >= outage.start_week &&
         r.week <= outage.end_week &&
         a.geometry.envelope.some((id) => outage.locations.includes(id))
@@ -576,12 +593,16 @@ export function validatePlan(d, scenario, access, occupancy) {
   const hotspots = [];
   for (const [key, n] of counts) {
     const [w, id] = key.split('|'),
-      capacity = d.loc.get(id)?.capacity ?? 0,
+      capacity = capacityAt(d, id, +w),
+      quotaReduced = capacityReduction(d, id, +w).length > 0,
       e = Math.max(0, n - capacity);
     excess += e;
     if (n >= capacity) hotspots.push({ week: +w, location: id, used: n, capacity, excess: e });
-    if ((scenario === 'A' && e) || (scenario === 'C' && e > 1))
-      add('capacity', `Week ${w}, ${id}: ${n} possessions / ${capacity} nominal`);
+    if ((scenario === 'A' && e) || (scenario === 'C' && e > 1) || (quotaReduced && e))
+      add(
+        'capacity',
+        `Week ${w}, ${id}: ${n} possessions / ${capacity}${quotaReduced ? ' temporary quota' : ' nominal'}`,
+      );
   }
   if (scenario === 'C')
     for (const [line, weeks] of Object.entries(ecloWeeks))
@@ -691,6 +712,7 @@ function attempt(d, scenario, mode, windowSeed = null) {
         !finished.has(a.activity_id) &&
         !(d.disruptions || []).some(
           (x) =>
+            !Number.isInteger(x.capacity) &&
             week >= x.start_week &&
             week <= x.end_week &&
             a.geometry.envelope.some((id) => x.locations.includes(id)),
@@ -771,8 +793,10 @@ function attempt(d, scenario, mode, windowSeed = null) {
           }
           if (!sharing.length) {
             const current = used.get(location) || 0,
-              cap = d.loc.get(location).capacity;
-            if (scenario !== 'B' && current + 1 > cap + (scenario === 'C' ? 1 : 0)) {
+              cap = capacityAt(d, location, week),
+              quotaReduced = capacityReduction(d, location, week).length > 0,
+              hardCap = scenario !== 'B' || quotaReduced;
+            if (hardCap && current + 1 > cap + (!quotaReduced && scenario === 'C' ? 1 : 0)) {
               valid = false;
               break;
             }

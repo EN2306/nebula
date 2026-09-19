@@ -23,11 +23,11 @@ Moves preserve the imported route and change one weekly booking. The full plan i
 
 ## Disruption backup plans
 
-**What-if disruption / backup plan** models weather, power, equipment or another temporary closure at one location, one line or the whole network for 1–52 weeks. An activity is blocked if its work or safety envelope intersects the closure. Bookings before the first affected week are preserved. The solver rebuilds remaining work under the selected A/B/C policy and reports changed activities, delay, completion and score.
+**What-if disruption / backup plan** models weather, power, equipment or another temporary closure at one location, one line or the whole network for 1–52 weeks. It also supports a **temporary quota reduction**: for example, reduce a location from four possessions to one for weeks 18–22. Quota reductions are enforced as a hard maximum in every scenario, including B. An activity is blocked if its work or safety envelope intersects a closure. Bookings before the first affected week are preserved. The solver rebuilds remaining work under the selected A/B/C policy and reports changed activities, delay, completion and score.
 
 An infeasible result cannot be saved. Change the scenario or incident scope, or send the situation to a supervisor. No claim of a feasible alternative is made when the constraints cannot be met. Adopted closure windows remain attached to the scenario and are enforced when moving, rebuilding and exporting that plan. **What-if capacity** remains a separate preview for a flat capacity change over every week.
 
-The model has weekly time resolution. A one-day incident is conservatively represented by its affected week. It does not simulate weather physics, electrical load, worker skills or shift-level resource availability.
+The model has weekly time resolution. A one-day incident is conservatively represented by its affected week. The recovery preserves history before the incident and reports every changed activity; it does not claim global minimum churn. It does not simulate weather physics, electrical load, worker skills or shift-level resource availability.
 
 ## Worker reports and penalties
 

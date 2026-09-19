@@ -1,4 +1,5 @@
 export function explainPlan(d, result) {
+  const hotspots = result.report.detail.capacity_hotspots || [];
   const rowsByActivity = new Map(
     d.activities.map((a) => [
       a.activity_id,
@@ -39,6 +40,19 @@ export function explainPlan(d, result) {
     const messages = [
       `Requires ${a.work} work units; ${rows.reduce((n, r) => n + (r.eclo ? 1.5 : 1), 0)} scheduled across ${rows.length} weeks.`,
     ];
+    const capacityEvidence = hotspots
+      .filter(
+        (hotspot) =>
+          hotspot.week >= earliest &&
+          hotspot.week <= (finish || earliest) &&
+          a.geometry.envelope.includes(hotspot.location),
+      )
+      .map((hotspot) => ({
+        week: hotspot.week,
+        location: hotspot.location,
+        used: hotspot.used,
+        capacity: hotspot.capacity,
+      }));
     if (a.predecessor_activity_id)
       messages.push(
         `${a.predecessor_activity_id} ${predecessorFinish === null ? 'has not completed' : `finishes in week ${predecessorFinish}; this activity must start in week ${earliest} or later`}.`,
@@ -51,6 +65,13 @@ export function explainPlan(d, result) {
     else if (finish !== null) messages.push('Finishes within the planned target.');
     if (sharing.length)
       messages.push(`Shares at least one booked location/night with ${sharing.join(', ')}.`);
+    if (capacityEvidence.length)
+      messages.push(
+        `Observed capacity pressure on this route in ${capacityEvidence
+          .slice(0, 3)
+          .map((row) => `week ${row.week} (${row.used}/${row.capacity})`)
+          .join(', ')}. This is schedule evidence, not a proof of sole causation.`,
+      );
     return {
       ...previous,
       first_week: rows[0]?.week ?? null,
@@ -60,6 +81,16 @@ export function explainPlan(d, result) {
       delay_days: late,
       delay_penalty: cost,
       predecessor_finish_week: predecessorFinish,
+      constraint_evidence: {
+        predecessor: a.predecessor_activity_id
+          ? {
+              activity_id: a.predecessor_activity_id,
+              finish_week: predecessorFinish,
+              earliest_week: earliest,
+            }
+          : null,
+        capacity: capacityEvidence,
+      },
     };
   });
 }

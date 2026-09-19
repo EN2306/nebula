@@ -237,7 +237,7 @@ function moveForm(id, from, to) {
 function disruptionForm() {
   dialog(
     'What-if disruption & backup plan',
-    `<p>Test a temporary closure caused by weather, a power outage, equipment failure or another incident. Choose the affected area and weeks. Earlier bookings stay fixed.</p><form id="disruption-form"><div class="forms"><div><label for="disruption-type">Incident</label><select id="disruption-type" name="type"><option value="weather">Severe weather</option><option value="power">Power outage / shortage</option><option value="equipment">Equipment unavailable</option><option value="other">Other closure</option></select></div><div><label for="disruption-scope">Affected area</label><select id="disruption-scope" name="scope"><option value="line">One line</option><option value="location">One location</option><option value="network">Whole network</option></select></div><div class="span2"><label for="disruption-location">Line / location</label><select id="disruption-location" name="location"></select></div><div><label for="disruption-start">First affected week</label><input id="disruption-start" name="start_week" type="number" min="1" max="1040" value="1" required></div><div><label for="disruption-end">Last affected week</label><input id="disruption-end" name="end_week" type="number" min="1" max="1040" value="1" required></div></div><p class="hint">Uses Scenario ${psScenario} rules. Affected work areas and buffers are unavailable for the selected weeks. For a partial capacity reduction across all weeks, use What-if capacity.</p><button class="primary">Generate backup plan</button></form><div id="schedule-preview" role="status"></div>`,
+    `<p>Test a temporary closure or a nightly quota reduction. Choose the affected area and weeks. Earlier bookings stay fixed; the recovery plan rebuilds only the remaining horizon.</p><form id="disruption-form"><div class="forms"><div><label for="disruption-type">Incident</label><select id="disruption-type" name="type"><option value="weather">Severe weather</option><option value="power">Power outage / shortage</option><option value="equipment">Equipment unavailable</option><option value="capacity">Temporary quota reduction</option><option value="other">Other closure</option></select></div><div><label for="disruption-scope">Affected area</label><select id="disruption-scope" name="scope"><option value="line">One line</option><option value="location">One location</option><option value="network">Whole network</option></select></div><div class="span2"><label for="disruption-location">Line / location</label><select id="disruption-location" name="location"></select></div><div id="disruption-capacity-wrap" hidden><label for="disruption-capacity">Temporary quota per location/week</label><input id="disruption-capacity" name="capacity" type="number" min="0" max="100" value="1"></div><div><label for="disruption-start">First affected week</label><input id="disruption-start" name="start_week" type="number" min="1" max="1040" value="1" required></div><div><label for="disruption-end">Last affected week</label><input id="disruption-end" name="end_week" type="number" min="1" max="1040" value="1" required></div></div><p id="disruption-hint" class="hint">Affected work areas and buffers are unavailable for the selected weeks.</p><button class="primary">Generate backup plan</button></form><div id="schedule-preview" role="status"></div>`,
   );
   const locations = () => {
     const scope = $('disruption-scope').value;
@@ -254,6 +254,15 @@ function disruptionForm() {
   };
   locations();
   $('disruption-scope').onchange = locations;
+  const mode = () => {
+    const quota = $('disruption-type').value === 'capacity';
+    $('disruption-capacity-wrap').hidden = !quota;
+    $('disruption-hint').textContent = quota
+      ? `Scenario ${psScenario}: the selected locations must stay within this temporary quota. Earlier bookings remain fixed; the preview reports all changed activities.`
+      : `Scenario ${psScenario}: affected work areas and buffers are unavailable for the selected weeks. Earlier bookings remain fixed.`;
+  };
+  mode();
+  $('disruption-type').onchange = mode;
   $('disruption-form').onsubmit = (e) => {
     e.preventDefault();
     const b = formData(e.target);
@@ -264,6 +273,7 @@ function disruptionForm() {
         ...b,
         start_week: Number(b.start_week),
         end_week: Number(b.end_week),
+        ...(b.type === 'capacity' ? { capacity: Number(b.capacity) } : {}),
       });
       showSchedulePreview(preview);
     }, e.submitter);

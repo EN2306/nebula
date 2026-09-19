@@ -68,7 +68,7 @@ export function moveBooking(files, baseline, activity, from, to) {
   return candidate;
 }
 export function validateDisruption(d, b) {
-  if (!['weather', 'power', 'equipment', 'other'].includes(b.type))
+  if (!['weather', 'power', 'equipment', 'other', 'capacity'].includes(b.type))
     throw Error('Choose a disruption type.');
   if (
     !Number.isInteger(b.start_week) ||
@@ -85,6 +85,9 @@ export function validateDisruption(d, b) {
     locations = d.supply.filter((x) => x.line_code === b.location).map((x) => x.location_id);
   else if (b.scope === 'location' && d.loc.has(b.location)) locations = [b.location];
   else throw Error('Choose a valid affected line or track location.');
+  const capacity = b.type === 'capacity' ? b.capacity : null;
+  if (capacity !== null && (!Number.isInteger(capacity) || capacity < 0 || capacity > 100))
+    throw Error('Choose a temporary quota from 0 to 100 possessions per location/week.');
   return {
     type: b.type,
     scope: b.scope,
@@ -92,5 +95,6 @@ export function validateDisruption(d, b) {
     start_week: b.start_week,
     end_week: b.end_week,
     locations,
+    ...(capacity === null ? {} : { capacity }),
   };
 }

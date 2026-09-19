@@ -48,7 +48,7 @@ Machine-readable evidence: [current benchmark](../submissions/benchmark.json), [
 
 ## Verification and remaining work
 
-All 17 automated tests pass, covering solver mutations, bounds, stress fixtures, CLI stale-output failures, deployment security, authentication, persistence and non-mutating previews. The real-browser smoke test passed account setup, example import, A/B/C solving, the quality table, capacity preview and evidence dialogs, with desktop/mobile screenshots inspected locally. The Docker image built successfully and passed non-root execution, absence of bundled runtime data, import/solve/export and SQLite-reopen checks on Node 24.21.0.
+All 24 automated tests pass, covering solver mutations, bounds, stress fixtures, CSV preflight, deployment security, authentication, role visibility, persistence, disruptions and non-mutating previews. The real-browser smoke test passed account setup, example import, A/B/C solving, the quality table, capacity preview and evidence dialogs, with desktop/mobile screenshots inspected locally. The Docker image built successfully and passed non-root execution, absence of bundled runtime data, import/solve/export and SQLite-reopen checks on Node 24.
 
 The previously compressed source is now consistently formatted. Prettier is pinned as a development-only dependency; use `npm ci` before `npm run format:check`. The GitLab pipeline runs the same formatting check. Official reference bytes remain unchanged.
 

@@ -15,15 +15,28 @@ npm run benchmark
 
 Open http://127.0.0.1:3001 and create a planner account on a fresh installation. An existing local installation retains its accounts. `npm run results` regenerates the public A/B/C outputs without changing the application database.
 
+## Demo accounts
+
+The Docker demo configuration enables `RAILSYNC_DEMO_ACCOUNTS=true`, which provisions these accounts on first start. These are intentionally public demonstration credentials, not host, Vercel, database, setup-token, or AI-provider secrets.
+
+| Workspace  | Email                       | Password             |
+| ---------- | --------------------------- | -------------------- |
+| Planner    | `planner@trackwork.demo`    | `TrackworkDemo!2026` |
+| Supervisor | `supervisor@trackwork.demo` | `TrackworkDemo!2026` |
+| Manager    | `manager@trackwork.demo`    | `TrackworkDemo!2026` |
+| Worker     | `worker@trackwork.demo`     | `TrackworkDemo!2026` |
+
+Use these only for a disposable demo. Disable `RAILSYNC_DEMO_ACCOUNTS` and create individual accounts for an operational deployment. The planner can import/build/edit/export; the supervisor has read-only schedule and workforce oversight; the manager assigns and reviews work; the worker sees only their own tasks.
+
 ## CI and repository handoff
 
 The root [`.gitlab-ci.yml`](.gitlab-ci.yml) and [GitHub Actions workflow](.github/workflows/ci.yml) run on Node 24 for pushes and merge requests. They check formatting and the official-source checksums, run the 24 solver/API/privacy tests, regenerate the A/B/C schedule evidence, and save the generated submission files and benchmark as 14-day artifacts. Browser smoke tests are intentionally local because they require Microsoft Edge.
 
-This checkout currently has only a GitHub remote, so it has no GitLab repository URL to publish. Import this repository into GitLab or add its URL as a remote, then push `main`; the pipeline starts automatically:
+The maintained repositories are [GitHub](https://github.com/EN2306/nebula) and [GitLab](https://gitlab.com/chia-group1/lta-nebulax). Their `main` branches are synchronized. GitLab protects `main`, so routine changes should be reviewed through a merge request:
 
 ```sh
-git remote add gitlab https://gitlab.com/your-group/nebula.git
-git push -u gitlab main
+git switch -c feature/my-change
+git push -u gitlab feature/my-change
 ```
 
 The four-account visibility contract and its server-side enforcement are documented in [docs/TEAM-WORKFLOWS.md](docs/TEAM-WORKFLOWS.md). Both CI pipelines exercise the same API and privacy checks through `npm test`.

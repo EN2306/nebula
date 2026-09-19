@@ -35,6 +35,32 @@ const choice = (v, values, name) => {
   return v;
 };
 const digest = (s) => createHash('sha256').update(s).digest('hex');
+const DEMO_ACCOUNTS = Object.freeze([
+  {
+    name: 'Demo Planner',
+    email: 'planner@trackwork.demo',
+    password: 'TrackworkDemo!2026',
+    role: 'scheduler',
+  },
+  {
+    name: 'Demo Supervisor',
+    email: 'supervisor@trackwork.demo',
+    password: 'TrackworkDemo!2026',
+    role: 'supervisor',
+  },
+  {
+    name: 'Demo Manager',
+    email: 'manager@trackwork.demo',
+    password: 'TrackworkDemo!2026',
+    role: 'manager',
+  },
+  {
+    name: 'Demo Worker',
+    email: 'worker@trackwork.demo',
+    password: 'TrackworkDemo!2026',
+    role: 'worker',
+  },
+]);
 const hash = (p) => {
   const salt = randomBytes(16).toString('hex');
   return salt + ':' + scryptSync(p, salt, 64).toString('hex');
@@ -203,6 +229,17 @@ export function createApp({
       u.team_id,
     );
     return u;
+  }
+  if (process.env.RAILSYNC_DEMO_ACCOUNTS === 'true') {
+    const seeded = DEMO_ACCOUNTS.filter(
+      (account) => !db.prepare('SELECT id FROM users WHERE email=?').get(account.email),
+    );
+    for (const account of seeded) userCreate(account);
+    if (seeded.length) {
+      const s = get();
+      audit(s, { id: 'system', name: 'System' }, 'Demo accounts provisioned', null, seeded.length);
+      save(s);
+    }
   }
   function login(u, res) {
     const token = randomBytes(32).toString('hex'),

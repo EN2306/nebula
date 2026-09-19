@@ -26,6 +26,8 @@ docker compose ps
 
 The named `trackwork-data` volume keeps accounts, sessions and plans across container replacement. Put an HTTPS reverse proxy in front of port 3001 for remote judging and set `RAILSYNC_PUBLIC_ORIGIN` to the public origin.
 
+For a disposable role-workflow demonstration, set `RAILSYNC_DEMO_ACCOUNTS=true`. It provisions the four public credentials listed in the root README. Do not enable it on an operational host; it creates predictable accounts.
+
 The image runs as the non-root `node` user. The persistent volume holds accounts, sessions and the shared programme. It copies application source and the eight official input files; `.dockerignore` excludes local databases, archives and tests. One application instance owns this SQLite workspace. Planner accounts deliberately share the programme; importing replaces it for everyone.
 
 ## Hosted judging setup
