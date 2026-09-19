@@ -90,3 +90,7 @@ Expanded ECLO-window exploration from 4 to 20 candidate weeks per line (up to 40
 ## Public optimality proof
 
 Exhaustive relaxed subproblem enumeration in scripts/prove-public.mjs now proves tighter bounds A 32.2, B 30, C 26.1, matching the submitted feasible schedules. A036/A075 closure interaction plus A059 cost suffices. This supersedes the earlier unproven-gap statement for this public instance under the corrected internal model only; official acceptance remains unverified. See docs/PUBLIC-OPTIMALITY.md and submissions/public/OPTIMALITY.json.
+
+## Optimal submission deployment verification
+
+Deployed runtime commit 4e9a4fd to Vercel production (dpl_GKRMEf3KiYkHaE61RTaUxWLUp2fk) and Google VM railsync. Cloud image digest sha256:56e012e5712643c145b76b585d74cd86c3b0ffcd1da1fc8de9d2ef1b6a797f1c. Rebuilt saved A/B/C on both hosts; verified scores 32.2/30/26.1 and byte-for-byte equality of every downloaded SUBMISSION.zip with submissions/validator. Vercel uses Supabase; VM uses persistent SQLite. Prior state snapshots are ignored local files; VM database backup retained on VM.
