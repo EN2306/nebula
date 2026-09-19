@@ -2,7 +2,7 @@ name: Verify Trackwork
 
 on:
   push:
-    branches: [main, "codex/**"]
+    branches: [main, 'codex/**']
   pull_request:
 
 permissions:
