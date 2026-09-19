@@ -22,6 +22,7 @@ export function requestOrigin(host, config) {
   for (const allowed of [config, ...(config.alternatives || [])]) {
     if (allowed.host && host === allowed.host) return allowed.origin;
   }
+  if (config.allowedHosts?.includes(host)) return 'http://' + host;
   if (/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(host)) return 'http://' + host;
   return null;
 }
@@ -34,6 +35,10 @@ export function hostingOptions(env = process.env) {
   return {
     publicOrigin: env.RAILSYNC_PUBLIC_ORIGIN || aliases[0] || '',
     additionalOrigins: aliases,
+    allowedHosts: String(env.RAILSYNC_ALLOWED_HOSTS || '')
+      .split(',')
+      .map((host) => host.trim())
+      .filter(Boolean),
     ephemeral: !!env.VERCEL && !env.SUPABASE_DB_URL,
   };
 }

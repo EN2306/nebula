@@ -104,3 +104,13 @@ gcloud run deploy trackwork `
 Create the two Secret Manager secrets before deploying. Do not put the Supabase password, setup token or AI key in source control or a command history. After deployment, verify `/api/health` reports `storage: "supabase"` and `ephemeral: false`, then run `scripts/hosted-smoke.mjs` with the same private account file used for Vercel. A Cloud Run deployment made with any other image or database would not be considered parity with the production Vercel service.
 
 Implementation references: [Node HTTP server](https://nodejs.org/docs/latest-v24.x/api/http.html), [Docker Node.js guide](https://docs.docker.com/guides/nodejs/).
+
+## Google Compute Engine VM
+
+Project `nebulax-realvision` has a persistent VM named `railsync` in
+`asia-southeast1-b`. It runs the same application image from Artifact Registry
+with SQLite on `/var/lib/railsync`. Cloud Build rebuilds the image and the VM
+restarts it with that persistent directory mounted. For a temporary HTTP-only
+VM endpoint, set `RAILSYNC_ALLOWED_HOSTS` to the exact VM IP; for judging, put
+HTTPS Caddy or a load balancer in front and set `RAILSYNC_PUBLIC_ORIGIN`.
+Never expose the SQLite file or Docker socket.

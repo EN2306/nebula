@@ -90,6 +90,7 @@ async function initializeApp(
     publicOrigin = process.env.RAILSYNC_PUBLIC_ORIGIN || '',
     setupToken = process.env.RAILSYNC_SETUP_TOKEN || '',
     additionalOrigins = [],
+    allowedHosts = [],
     ephemeral = false,
     initialAccounts = process.env.RAILSYNC_INITIAL_ACCOUNTS_JSON
       ? JSON.parse(process.env.RAILSYNC_INITIAL_ACCOUNTS_JSON)
@@ -98,6 +99,7 @@ async function initializeApp(
 ) {
   const deployment = deploymentConfig(publicOrigin);
   deployment.alternatives = additionalOrigins.map((origin) => deploymentConfig(origin));
+  deployment.allowedHosts = allowedHosts;
   await db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;
  CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY,name TEXT NOT NULL,email TEXT UNIQUE NOT NULL,password TEXT NOT NULL,role TEXT NOT NULL,team_id TEXT);
  CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY,user_id TEXT REFERENCES users(id),csrf TEXT,expires INTEGER);
